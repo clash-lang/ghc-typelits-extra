@@ -26,3 +26,16 @@ library
                        ghc >= 7.10 && <7.12
   hs-source-dirs:      src
   default-language:    Haskell2010
+
+test-suite test-ghc-tynat-normalise
+  type:                exitcode-stdio-1.0
+  main-is:             Main.hs
+  Other-Modules:       ErrorTests
+  build-depends:       base >=4.8 && <4.9,
+                       ghc-typelits-extra >= 0.1,
+                       ghc-typelits-natnormalise >= 0.2.2,
+                       tasty >= 0.10,
+                       tasty-hunit >= 0.9
+  hs-source-dirs:      tests
+  default-language:    Haskell2010
+  ghc-options:         -O0 -dcore-lint
