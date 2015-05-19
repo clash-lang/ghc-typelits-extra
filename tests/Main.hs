@@ -17,7 +17,7 @@ import Data.Proxy
 test1 :: Proxy (GCD 6 8) -> Proxy 2
 test1 = id
 
-test2 :: Proxy ((GCD 6 8) + x) -> Proxy (x + 2)
+test2 :: Proxy ((GCD 6 8) + x) -> Proxy (x + (GCD 10 8))
 test2 = id
 
 main :: IO ()
@@ -26,16 +26,16 @@ main = defaultMain tests
 tests :: TestTree
 tests = testGroup "ghc-typelits-natnormalise"
   [ testGroup "Basic functionality"
-    [ testCase "Proxy (GCD 6 8) -> Proxy 2" $
+    [ testCase "GCD 6 8 ~ 2" $
       show (test1 Proxy) @?=
       "Proxy"
-    , testCase "Proxy ((GCD 6 8) + x) -> Proxy (x + 2)" $
+    , testCase "GCD 6 8 + x ~ x + GCD 10 8" $
       show (test2 Proxy) @?=
       "Proxy"
     ]
   , testGroup "errors"
-    [ testCase "Proxy (GCD 6 8) -> Proxy 3" $ testFail1 `throws` testFail1Errors
-    , testCase "Proxy ((GCD 6 8) + x) -> Proxy (x + 3)" $ testFail2 `throws` testFail2Errors
+    [ testCase "GCD 6 8 ~ Proxy 3" $ testFail1 `throws` testFail1Errors
+    , testCase "GCD 6 8 + x ~ x + GCD 9 6" $ testFail2 `throws` testFail2Errors
     ]
   ]
 
