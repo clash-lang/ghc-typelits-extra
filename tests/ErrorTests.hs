@@ -10,15 +10,15 @@ import GHC.TypeLits
 import GHC.TypeLits.Extra
 import Data.Proxy
 
-testFail1 :: Proxy (GCD 6 8) -> Proxy 3
+testFail1 :: Proxy (GCD 6 8) -> Proxy 4
 testFail1 = id
 
 testFail2 :: Proxy ((GCD 6 8) + x) -> Proxy (x + (GCD 6 9))
 testFail2 = id
 
 testFail1Errors =
-  ["Expected type: Proxy (GCD 6 8) -> Proxy 3"
-  ,"Actual type: Proxy 3 -> Proxy 3"
+  ["Expected type: Proxy (GCD 6 8) -> Proxy 4"
+  ,"Actual type: Proxy 4 -> Proxy 4"
   ]
 
 testFail2Errors =

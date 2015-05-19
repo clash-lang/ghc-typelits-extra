@@ -34,7 +34,7 @@ tests = testGroup "ghc-typelits-natnormalise"
       "Proxy"
     ]
   , testGroup "errors"
-    [ testCase "GCD 6 8 ~ Proxy 3" $ testFail1 `throws` testFail1Errors
+    [ testCase "GCD 6 8 ~ 4" $ testFail1 `throws` testFail1Errors
     , testCase "GCD 6 8 + x ~ x + GCD 9 6" $ testFail2 `throws` testFail2Errors
     ]
   ]
