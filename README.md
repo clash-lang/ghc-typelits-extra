@@ -4,8 +4,9 @@ Extra type-level operations on GHC.TypeLits.Nat and a custom solver
 #Hacking
 Download sources:
 ```
-git clone git@github.com:christiaanb/ghc-typelits-extra.git
-git clone git@github.com:christiaanb/ghc-typelits-natnormalise.git
+git clone https://github.com/christiaanb/ghc-typelits-extra.git
+git clone https://github.com/clash-lang/ghc-tcplugins-extra.git
+git clone https://github.com/clash-lang/ghc-typelits-natnormalise.git
 ```
 
 Go to ghc-typelits-extra dir:
@@ -16,6 +17,7 @@ cd ghc-typelits-extra
 Run:
 ```
 cabal sandbox init
+cabal sandbox add-source ../ghc-typelits-extra
 cabal sandbox add-source ../ghc-typelits-natnormalise
 cabal install --dependencies-only --enable-tests
 ```
