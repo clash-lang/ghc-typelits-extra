@@ -81,7 +81,7 @@ unifyExtra ct u v = do
   return (unifyExtra' ct u v)
 
 unifyExtra' :: Ct -> ExtraOp -> ExtraOp -> UnifyResult
-unifyExtra' ct u v
+unifyExtra' _ u v
   | eqFV u v  = if u == v then Win else Lose
   | otherwise = Draw []
 

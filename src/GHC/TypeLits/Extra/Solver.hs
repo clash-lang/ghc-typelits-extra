@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP             #-}
+{-# LANGUAGE LambdaCase      #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TupleSections   #-}
 
@@ -15,43 +16,29 @@ module GHC.TypeLits.Extra.Solver
 where
 
 -- external
-import Data.Maybe (catMaybes, mapMaybe)
+import Data.Maybe          (catMaybes, mapMaybe)
+import GHC.TcPluginM.Extra (evByFiat, failWithProvenace, lookupModule,
+                            lookupName, newSimpleGiven, newWantedWithProvenance,
+                            tracePlugin)
 
 -- GHC API
-import Coercion   (Role (Nominal), mkUnivCo)
-import FastString (FastString, fsLit)
-import Module     (Module, ModuleName, mkModuleName, moduleNameString)
-import Name       (Name)
-import OccName    (OccName, mkTcOcc)
-import Outputable (Outputable (..), (<+>), ($$), empty, text)
+import FastString (fsLit)
+import Module     (mkModuleName)
+import OccName    (mkTcOcc)
+import Outputable (Outputable (..), (<+>), ($$), text)
 import Plugins    (Plugin (..), defaultPlugin)
-import TcEvidence (EvTerm (EvCoercion), TcCoercion (..))
-import TcPluginM  (FindResult (Found), TcPluginM, findImportedModule,
-                   lookupOrig, tcLookupTyCon, tcPluginTrace,
-                   unsafeTcPluginTcM, zonkCt)
-#if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 711
-import qualified  Inst
-#else
-import qualified  TcMType
-#endif
-import TcRnTypes  (Ct, CtLoc, CtOrigin, TcPlugin(..),
-                   TcPluginResult(..), ctEvidence, ctEvPred,
-                   ctLoc, ctLocOrigin, isGiven, isWanted, mkNonCanonical)
-import TcSMonad   (runTcS,newGivenEvVar)
+import TcEvidence (EvTerm)
+import TcPluginM  (TcPluginM, tcLookupTyCon, tcPluginTrace, zonkCt)
+import TcRnTypes  (Ct, TcPlugin(..), TcPluginResult (..), ctEvidence,
+                   ctEvPred, ctLoc, isGiven, isWanted)
 import TcType     (mkEqPred, typeKind)
-import Type       (EqRel (NomEq), Kind, PredTree (EqPred), PredType, Type,
-                   TyVar, classifyPredType, mkTyVarTy)
+import Type       (EqRel (NomEq), Kind, PredTree (EqPred), classifyPredType,
+                   mkTyVarTy)
 import TysWiredIn (typeNatKind)
 
 -- internal
 import GHC.TypeLits.Extra.Solver.Operations
 import GHC.TypeLits.Extra.Solver.Unify
-
--- workaround for https://ghc.haskell.org/trac/ghc/ticket/10301
-import Control.Monad (unless)
-import Data.IORef    (readIORef)
-import StaticFlags   (initStaticOpts, v_opt_C_ready)
-import TcPluginM     (tcPluginIO)
 
 -- | To use the plugin, add
 --
@@ -86,12 +73,12 @@ decideEqualSOP defs givens  _deriveds wanteds = do
         Simplified subst evs ->
           TcPluginOk (filter (isWanted . ctEvidence . snd) evs) <$>
             mapM (substItemToCt defs) (filter (isWanted . ctEvidence . siNote) subst)
-        Impossible eq  -> return (TcPluginContradiction [fromNatEquality eq])
+        Impossible eq -> failWithProvenace $ fromNatEquality eq
 
 substItemToCt :: ExtraDefs -> SubstItem -> TcPluginM Ct
 substItemToCt defs si
-  | isGiven (ctEvidence ct) = newSimpleGiven loc predicate (ty1,ty2)
-  | otherwise               = newSimpleWanted (ctLocOrigin loc) predicate
+  | isGiven (ctEvidence ct) = newSimpleGiven "ghc-typelits-extra" loc ty1 ty2
+  | otherwise               = newWantedWithProvenance (ctEvidence ct) predicate
   where
     predicate = mkEqPred ty1 ty2
     ty1  = mkTyVarTy (siVar si)
@@ -140,7 +127,6 @@ toNatEquality defs ct = case classifyPredType $ ctEvPred $ ctEvidence ct of
 fromNatEquality :: NatEquality -> Ct
 fromNatEquality (ct, _, _) = ct
 
-
 lookupExtraDefs :: TcPluginM ExtraDefs
 lookupExtraDefs = do
     md <- lookupModule myModule myPackage
@@ -152,73 +138,7 @@ lookupExtraDefs = do
     myPackage = fsLit "ghc-typelits-extra"
 
 -- Utils
-newSimpleWanted :: CtOrigin -> PredType -> TcPluginM Ct
-#if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 711
-newSimpleWanted orig = fmap mkNonCanonical . unsafeTcPluginTcM . Inst.newWanted orig
-#else
-newSimpleWanted orig = unsafeTcPluginTcM . TcMType.newSimpleWanted orig
-#endif
-
-newSimpleGiven :: CtLoc -> PredType -> (Type,Type) -> TcPluginM Ct
-newSimpleGiven loc predicate (ty1,ty2)= do
-  (ev,_) <- unsafeTcPluginTcM $ runTcS
-                              $ newGivenEvVar loc
-                                  (predicate, evByFiat "ghc-typelits-extra" (ty1, ty2))
-  return (mkNonCanonical ev)
-
 evMagic :: Ct -> Maybe EvTerm
 evMagic ct = case classifyPredType $ ctEvPred $ ctEvidence ct of
     EqPred NomEq t1 t2 -> Just (evByFiat "ghc-typelits-extra_magic" (t1, t2))
     _                  -> Nothing
-
-evByFiat :: String -> (Type, Type) -> EvTerm
-evByFiat name (t1,t2) = EvCoercion $ TcCoercion
-                      $ mkUnivCo (fsLit name) Nominal t1 t2
-
-tracePlugin :: String -> TcPlugin -> TcPlugin
-tracePlugin s TcPlugin{..} = TcPlugin { tcPluginInit  = traceInit
-                                      , tcPluginSolve = traceSolve
-                                      , tcPluginStop  = traceStop
-                                      }
-  where
-    traceInit    = do -- workaround for https://ghc.haskell.org/trac/ghc/ticket/10301
-                      initializeStaticFlags
-                      tcPluginTrace ("tcPluginInit " ++ s) empty >> tcPluginInit
-    traceStop  z = do -- workaround for https://ghc.haskell.org/trac/ghc/ticket/10301
-                      initializeStaticFlags
-                      tcPluginTrace ("tcPluginStop " ++ s) empty >> tcPluginStop z
-
-    traceSolve z given derived wanted = do
-        -- workaround for https://ghc.haskell.org/trac/ghc/ticket/10301
-        initializeStaticFlags
-        tcPluginTrace ("tcPluginSolve start " ++ s)
-                          (text "given   =" <+> ppr given
-                        $$ text "derived =" <+> ppr derived
-                        $$ text "wanted  =" <+> ppr wanted)
-        r <- tcPluginSolve z given derived wanted
-        case r of
-          TcPluginOk solved new     -> tcPluginTrace ("tcPluginSolve ok " ++ s)
-                                           (text "solved =" <+> ppr solved
-                                         $$ text "new    =" <+> ppr new)
-          TcPluginContradiction bad -> tcPluginTrace ("tcPluginSolve contradiction " ++ s)
-                                           (text "bad =" <+> ppr bad)
-        return r
-
-lookupModule :: ModuleName -> FastString -> TcPluginM Module
-lookupModule mod_nm pkg = do
-    found_module <- findImportedModule mod_nm $ Just pkg
-    case found_module of
-      Found _ md -> return md
-      _          -> do found_module' <- findImportedModule mod_nm $ Just $ fsLit "this"
-                       case found_module' of
-                         Found _ md -> return md
-                         _          -> error $ "Unable to resolve module looked up by plugin: " ++ moduleNameString mod_nm
-
-lookupName :: Module -> OccName -> TcPluginM Name
-lookupName md occ = lookupOrig md occ
-
--- workaround for https://ghc.haskell.org/trac/ghc/ticket/10301
-initializeStaticFlags :: TcPluginM ()
-initializeStaticFlags = tcPluginIO $ do
-  r <- readIORef v_opt_C_ready
-  unless r initStaticOpts
