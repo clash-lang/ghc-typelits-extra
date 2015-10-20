@@ -1,7 +1,4 @@
-{-# LANGUAGE CPP             #-}
-{-# LANGUAGE LambdaCase      #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE TupleSections   #-}
+{-# LANGUAGE TupleSections #-}
 
 {-# OPTIONS_HADDOCK show-extensions #-}
 
