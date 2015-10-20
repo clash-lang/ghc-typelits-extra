@@ -1,34 +1,10 @@
 # ghc-typelits-extra
-Extra type-level operations on GHC.TypeLits.Nat and a custom solver
 
-#Hacking
-Download sources:
-```
-git clone https://github.com/christiaanb/ghc-typelits-extra.git
-git clone https://github.com/clash-lang/ghc-tcplugins-extra.git
-git clone https://github.com/clash-lang/ghc-typelits-natnormalise.git
-```
+[![Build Status](https://secure.travis-ci.org/clash-lang/ghc-typelits-natnormalise.png?branch=master)](http://travis-ci.org/clash-lang/ghc-typelits-natnormalise)
+[![Hackage](https://img.shields.io/hackage/v/ghc-typelits-natnormalise.svg)](https://hackage.haskell.org/package/ghc-typelits-natnormalise)
+[![Hackage Dependencies](https://img.shields.io/hackage-deps/v/ghc-typelits-natnormalise.svg?style=flat)](http://packdeps.haskellers.com/feed?needle=exact%3Aghc-typelits-natnormalise)
 
-Go to ghc-typelits-extra dir:
-```
-cd ghc-typelits-extra
-```
+Extra type-level operations on GHC.TypeLits.Nat and a custom solver:
 
-Run:
-```
-cabal sandbox init
-cabal sandbox add-source ../ghc-typelits-extra
-cabal sandbox add-source ../ghc-typelits-natnormalise
-cabal install --dependencies-only --enable-tests
-```
-
-Configure the package with testing enabled:
-```
-cabal configure --enable-tests
-```
-
-Once you've finished hacking, build and test:
-```
-cabal build
-cabal test
-```
+* `GHC.TypeLits.Extra.GCD`: a type-level `gcd`
+* `GHC.TypeLits.Extra.CLog`: type-level equivalent of `clog x y = ceiling (logBase x y)`

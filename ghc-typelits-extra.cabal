@@ -1,6 +1,23 @@
 name:                ghc-typelits-extra
-version:             0.1.0.0
+version:             0.1
 synopsis:            Additional type-level operations on GHC.TypeLits.Nat
+description:
+  Additional type-level operations on @GHC.TypeLits.Nat@:
+  .
+  * @GHC.TypeLits.Extra.GCD@: a type-level @gcd@
+  .
+  * @GHC.TypeLits.Extra.CLog@: type-level equivalent of
+    "@clog x y = ceiling (logBase x y)@"
+  .
+  And a custom solver for the above operations defined in
+  @GHC.TypeLits.Extra.Solver@ as a GHC type-checker plugin. To use the plugin,
+  add the
+  .
+  @
+  OPTIONS_GHC -fplugin GHC.TypeLits.Extra.Solver
+  @
+  .
+  pragma to the header of your file.
 homepage:            http://www.clash-lang.org/
 license:             BSD2
 license-file:        LICENSE
@@ -9,6 +26,8 @@ maintainer:          christiaan.baaij@gmail.com
 copyright:           Copyright © 2015 University of Twente
 category:            Type System
 build-type:          Simple
+extra-source-files:  README.md
+                     CHANGELOG.md
 cabal-version:       >=1.10
 
 flag deverror

@@ -40,10 +40,17 @@ import TysWiredIn (typeNatKind)
 import GHC.TypeLits.Extra.Solver.Operations
 import GHC.TypeLits.Extra.Solver.Unify
 
--- | To use the plugin, add
+-- | A solver implement as a type-checker plugin for:
+--
+--   * @GHC.TypeLits.Extra.GCD@: a type-level 'gcd'
+--
+--   * @GHC.TypeLits.Extra.CLog@: type-level equivalent of
+--     \"@clog x y = 'ceiling' ('logBase' x y)@\"
+--
+-- To use the plugin, add
 --
 -- @
--- {\-\# OPTIONS_GHC -fplugin GHC.TypeLits.Normalise \#-\}
+-- {\-\# OPTIONS_GHC -fplugin GHC.TypeLits.Extra.Solver \#-\}
 -- @
 --
 -- To the header of your file.
