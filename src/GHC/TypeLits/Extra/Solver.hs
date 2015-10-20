@@ -132,8 +132,9 @@ fromNatEquality (ct, _, _) = ct
 lookupExtraDefs :: TcPluginM ExtraDefs
 lookupExtraDefs = do
     md <- lookupModule myModule myPackage
-    g <- look md "GCD"
-    return $ ExtraDefs g
+    gcdTc <- look md "GCD"
+    clogTc <- look md "CLog"
+    return $ ExtraDefs gcdTc clogTc
   where
     look md s = tcLookupTyCon =<< lookupName md (mkTcOcc s)
     myModule  = mkModuleName "GHC.TypeLits.Extra"

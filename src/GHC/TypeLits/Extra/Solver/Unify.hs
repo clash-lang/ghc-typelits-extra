@@ -16,7 +16,8 @@ import UniqSet    (UniqSet, emptyUniqSet, unionUniqSets, unitUniqSet)
 import GHC.TypeLits.Extra.Solver.Operations
 
 data ExtraDefs = ExtraDefs
-  { gcdTyCon :: TyCon
+  { gcdTyCon  :: TyCon
+  , clogTyCon :: TyCon
   }
 
 normaliseNat :: ExtraDefs -> Type -> Maybe ExtraOp
@@ -26,7 +27,10 @@ normaliseNat _ (LitTy (NumTyLit i)) = pure (I i)
 normaliseNat defs (TyConApp tc [x,y])
   | tc == gcdTyCon defs = mergeGCD <$> normaliseNat defs x
                                    <*> normaliseNat defs y
-  | otherwise           = Nothing
+  | tc == clogTyCon defs = do x' <- normaliseNat defs x
+                              y' <- normaliseNat defs y
+                              mergeCLog x' y'
+  | otherwise = Nothing
 normaliseNat _ _ = Nothing
 
 reifyExtraOp :: ExtraDefs -> ExtraOp -> Type
@@ -36,6 +40,10 @@ reifyExtraOp defs (GCD x y) = mkTyConApp (gcdTyCon defs)
                                          [reifyExtraOp defs x
                                          ,reifyExtraOp defs y
                                          ]
+reifyExtraOp defs (CLog x y) = mkTyConApp (clogTyCon defs)
+                                          [reifyExtraOp defs x
+                                          ,reifyExtraOp defs y
+                                          ]
 
 type ExtraSubst = [SubstItem]
 
@@ -54,11 +62,17 @@ substsExtra []     u = u
 substsExtra (si:s) u = substsExtra s (substExtra (siVar si) (siOP si) u)
 
 substExtra :: TyVar -> ExtraOp -> ExtraOp -> ExtraOp
-substExtra _  _ i@(I _)   = i
+substExtra _  _ i@(I _)    = i
 substExtra tv e v@(V tv')
-  | tv == tv'             = e
-  | otherwise             = v
-substExtra tv e (GCD x y) = mergeGCD (substExtra tv e x) (substExtra tv e y)
+  | tv == tv'              = e
+  | otherwise              = v
+substExtra tv e (GCD x y)  = mergeGCD (substExtra tv e x) (substExtra tv e y)
+substExtra tv e (CLog x y) = case mergeCLog x' y' of
+    Just k  -> k
+    Nothing -> CLog x' y'
+  where
+    x' = substExtra tv e x
+    y' = substExtra tv e y
 
 substsSubst :: ExtraSubst -> ExtraSubst -> ExtraSubst
 substsSubst s = map (\si -> si {siOP = substsExtra s (siOP si)})
@@ -86,9 +100,10 @@ unifyExtra' _ u v
   | otherwise = Draw []
 
 fvOP :: ExtraOp -> UniqSet TyVar
-fvOP (I _)     = emptyUniqSet
-fvOP (V v)     = unitUniqSet v
-fvOP (GCD x y) = fvOP x `unionUniqSets` fvOP y
+fvOP (I _)      = emptyUniqSet
+fvOP (V v)      = unitUniqSet v
+fvOP (GCD x y)  = fvOP x `unionUniqSets` fvOP y
+fvOP (CLog x y) = fvOP x `unionUniqSets` fvOP y
 
 eqFV :: ExtraOp -> ExtraOp -> Bool
 eqFV = (==) `on` fvOP
