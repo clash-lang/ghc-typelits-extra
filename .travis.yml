@@ -1,0 +1,66 @@
+language: c
+sudo: false
+
+matrix:
+  include:
+    - env: GHCVER=7.10.2 CABALVER=1.22 JOPTS="-j2"
+      addons: {apt: {packages: [cabal-install-1.22,ghc-7.10.2],sources: [hvr-ghc]}}
+    - env: GHCVER=head CABALVER=head JOPTS="-j2"
+      addons: {apt: {packages: [cabal-install-head,ghc-head],  sources: [hvr-ghc]}}
+
+  allow_failures:
+    - env: GHCVER=head CABALVER=head JOPTS="-j2"
+
+cache:
+  directories:
+  - $HOME/.cabal-sandbox
+
+before_cache:
+  - rm -f $HOME/.cabal-sandbox/$GHCVER/packages/00-index.tar
+
+before_install:
+  - export PATH=/opt/ghc/$GHCVER/bin:/opt/cabal/$CABALVER/bin:$PATH
+  - export CABAL=cabal-$CABALVER
+  - ghc --version
+  - $CABAL --version
+  - travis_retry $CABAL update
+
+install:
+  - |
+    if [ -f $HOME/.cabal-sandbox/$GHCVER/packages/00-index.tar ]; then
+      echo "Deleting invalid install cache"
+      rm -f $HOME/.cabal-sandbox/$GHCVER/packages/00-index.tar
+    fi
+  # if we are building on head, test against development versions of
+  # relevant dependencies
+  - $CABAL sandbox init --sandbox=$HOME/.cabal-sandbox/$GHCVER
+  - git clone https://github.com/clash-lang/ghc-tcplugins-extra.git
+  - git clone https://github.com/clash-lang/ghc-typelits-natnormalise.git
+  - $CABAL sandbox add-source ghc-tcplugins-extra
+  - $CABAL sandbox add-source ghc-typelits-natnormalise
+  - $CABAL install $JOPTS --enable-tests --dependencies-only --force-reinstalls
+
+script:
+  - $CABAL configure -v2 --enable-tests -fdeverror
+  - $CABAL build $JOPTS
+  - $CABAL test --show-details=always
+
+  # tests that a source-distribution can be generated
+  - $CABAL sdist
+
+  # check that the generated source-distribution can be built & installed
+  - export SRC_TGZ=$($CABAL info . | awk '{print $2 ".tar.gz";exit}') ;
+    if [ -f "dist/$SRC_TGZ" ]; then
+       $CABAL install --force-reinstalls "dist/$SRC_TGZ";
+    else
+       echo "expected 'dist/$SRC_TGZ' not found";
+       exit 1;
+    fi
+
+notifications:
+  irc:
+    channels:
+      - "irc.freenode.org#clash-lang"
+    skip_join: true
+    template:
+      - "\x0313ghc-typelits-extra\x0f/\x0306%{branch}\x0f \x0314%{commit}\x0f %{message} \x0302\x1f%{build_url}\x0f"
