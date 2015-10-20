@@ -18,7 +18,7 @@ where
 -- external
 import Data.Maybe          (catMaybes, mapMaybe)
 import GHC.TcPluginM.Extra (evByFiat, failWithProvenace, lookupModule,
-                            lookupName, newSimpleGiven, newWantedWithProvenance,
+                            lookupName, newGiven, newWantedWithProvenance,
                             tracePlugin)
 
 -- GHC API
@@ -30,7 +30,7 @@ import Plugins    (Plugin (..), defaultPlugin)
 import TcEvidence (EvTerm)
 import TcPluginM  (TcPluginM, tcLookupTyCon, tcPluginTrace, zonkCt)
 import TcRnTypes  (Ct, TcPlugin(..), TcPluginResult (..), ctEvidence,
-                   ctEvPred, ctLoc, isGiven, isWanted)
+                   ctEvPred, ctLoc, isGiven, isWanted, mkNonCanonical)
 import TcType     (mkEqPred, typeKind)
 import Type       (EqRel (NomEq), Kind, PredTree (EqPred), classifyPredType,
                    mkTyVarTy)
@@ -77,14 +77,16 @@ decideEqualSOP defs givens  _deriveds wanteds = do
 
 substItemToCt :: ExtraDefs -> SubstItem -> TcPluginM Ct
 substItemToCt defs si
-  | isGiven (ctEvidence ct) = newSimpleGiven "ghc-typelits-extra" loc ty1 ty2
-  | otherwise               = newWantedWithProvenance (ctEvidence ct) predicate
+  | isGiven (ctEvidence ct) = mkNonCanonical <$> newGiven loc predicate evTm
+  | otherwise               = mkNonCanonical <$> newWantedWithProvenance
+                                                   (ctEvidence ct) predicate
   where
     predicate = mkEqPred ty1 ty2
     ty1  = mkTyVarTy (siVar si)
     ty2  = reifyExtraOp defs (siOP si)
     ct   = siNote si
     loc  = ctLoc ct
+    evTm = evByFiat "ghc-typelits-extra" ty1 ty2
 
 type NatEquality = (Ct,ExtraOp,ExtraOp)
 
@@ -140,5 +142,5 @@ lookupExtraDefs = do
 -- Utils
 evMagic :: Ct -> Maybe EvTerm
 evMagic ct = case classifyPredType $ ctEvPred $ ctEvidence ct of
-    EqPred NomEq t1 t2 -> Just (evByFiat "ghc-typelits-extra_magic" (t1, t2))
+    EqPred NomEq t1 t2 -> Just (evByFiat "ghc-typelits-extra" t1 t2)
     _                  -> Nothing
