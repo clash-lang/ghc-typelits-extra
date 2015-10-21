@@ -7,6 +7,7 @@ import Data.Function (on)
 import Outputable (Outputable (..), (<+>), ($$), text)
 import TcPluginM  (TcPluginM, tcPluginTrace)
 import TcRnMonad  (Ct)
+import TcTypeNats (typeNatExpTyCon)
 import Type       (TyVar, tcView, mkNumLitTy, mkTyConApp, mkTyVarTy)
 import TyCon      (TyCon)
 import TypeRep    (Type (..), TyLit (..))
@@ -30,6 +31,8 @@ normaliseNat defs (TyConApp tc [x,y])
   | tc == clogTyCon defs = do x' <- normaliseNat defs x
                               y' <- normaliseNat defs y
                               mergeCLog x' y'
+  | tc == typeNatExpTyCon = mergeExp <$> normaliseNat defs x
+                                     <*> normaliseNat defs y
   | otherwise = Nothing
 normaliseNat _ _ = Nothing
 
@@ -44,6 +47,11 @@ reifyExtraOp defs (CLog x y) = mkTyConApp (clogTyCon defs)
                                           [reifyExtraOp defs x
                                           ,reifyExtraOp defs y
                                           ]
+reifyExtraOp defs (Exp x y) = mkTyConApp typeNatExpTyCon
+                                         [reifyExtraOp defs x
+                                         ,reifyExtraOp defs y
+                                         ]
+
 
 type ExtraSubst = [SubstItem]
 
@@ -73,6 +81,7 @@ substExtra tv e (CLog x y) = case mergeCLog x' y' of
   where
     x' = substExtra tv e x
     y' = substExtra tv e y
+substExtra tv e (Exp x y) = mergeExp (substExtra tv e x) (substExtra tv e y)
 
 substsSubst :: ExtraSubst -> ExtraSubst -> ExtraSubst
 substsSubst s = map (\si -> si {siOP = substsExtra s (siOP si)})
@@ -104,6 +113,7 @@ fvOP (I _)      = emptyUniqSet
 fvOP (V v)      = unitUniqSet v
 fvOP (GCD x y)  = fvOP x `unionUniqSets` fvOP y
 fvOP (CLog x y) = fvOP x `unionUniqSets` fvOP y
+fvOP (Exp x y)  = fvOP x `unionUniqSets` fvOP y
 
 eqFV :: ExtraOp -> ExtraOp -> Bool
 eqFV = (==) `on` fvOP

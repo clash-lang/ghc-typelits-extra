@@ -9,6 +9,7 @@ data ExtraOp
   | V    TyVar
   | GCD  ExtraOp ExtraOp
   | CLog ExtraOp ExtraOp
+  | Exp  ExtraOp ExtraOp
   deriving Eq
 
 instance Outputable ExtraOp where
@@ -16,14 +17,21 @@ instance Outputable ExtraOp where
   ppr (V v)      = ppr v
   ppr (GCD x y)  = text "GCD (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
   ppr (CLog x y) = text "CLog (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
+  ppr (Exp x y)  = text "Exp (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
 
 mergeGCD :: ExtraOp -> ExtraOp -> ExtraOp
 mergeGCD (I i) (I j) = I (gcd i j)
 mergeGCD x     y     = GCD x y
 
 mergeCLog :: ExtraOp -> ExtraOp -> Maybe ExtraOp
+mergeCLog (I i) (Exp (I j) b)
+  | i > 1 && i == j = Just b
 mergeCLog (I i) (I j)
-  | i > 1 && j /= 0 = Just (I (ceiling (logBase (fromInteger i :: Double)
-                                       (fromInteger j))))
-  | otherwise       = Nothing
+  | i > 1 && j > 0 = Just (I (ceiling (logBase (fromInteger i :: Double)
+                                      (fromInteger j))))
+  | otherwise      = Nothing
 mergeCLog x y = Just (CLog x y)
+
+mergeExp :: ExtraOp -> ExtraOp -> ExtraOp
+mergeExp (I i) (I j) = I (i^j)
+mergeExp x     y     = Exp x y
