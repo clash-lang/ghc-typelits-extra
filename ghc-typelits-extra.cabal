@@ -19,6 +19,7 @@ description:
   .
   pragma to the header of your file.
 homepage:            http://www.clash-lang.org/
+bug-reports:         http://github.com/clash-lang/ghc-typelits-extra/issues
 license:             BSD2
 license-file:        LICENSE
 author:              Christiaan Baaij
@@ -29,6 +30,10 @@ build-type:          Simple
 extra-source-files:  README.md
                      CHANGELOG.md
 cabal-version:       >=1.10
+
+source-repository head
+  type: git
+  location: https://github.com/clash-lang/ghc-typelits-extra.git
 
 flag deverror
   description:
@@ -41,9 +46,9 @@ library
                        GHC.TypeLits.Extra.Solver
   other-modules:       GHC.TypeLits.Extra.Solver.Unify
                        GHC.TypeLits.Extra.Solver.Operations
-  build-depends:       base >=4.8 && <4.9,
-                       ghc  >=7.10 && <7.12,
-                       ghc-tcplugins-extra >=0.1
+  build-depends:       base                >= 4.8  && <4.9,
+                       ghc                 >= 7.10 && <7.12,
+                       ghc-tcplugins-extra >= 0.1
   hs-source-dirs:      src
   default-language:    Haskell2010
   if flag(deverror)
@@ -55,11 +60,11 @@ test-suite test-ghc-typelits-extra
   type:                exitcode-stdio-1.0
   main-is:             Main.hs
   Other-Modules:       ErrorTests
-  build-depends:       base >=4.8 && <4.9,
-                       ghc-typelits-extra >= 0.1,
+  build-depends:       base                      >= 4.8 && <4.9,
+                       ghc-typelits-extra        >= 0.1,
                        ghc-typelits-natnormalise >= 0.3,
-                       tasty >= 0.10,
-                       tasty-hunit >= 0.9
+                       tasty                     >= 0.10,
+                       tasty-hunit               >= 0.9
   hs-source-dirs:      tests
   default-language:    Haskell2010
   ghc-options:         -O0 -dcore-lint
