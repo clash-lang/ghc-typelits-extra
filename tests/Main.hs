@@ -26,6 +26,9 @@ test3 = id
 test4 :: Proxy ((CLog 3 10) + x) -> Proxy (x + (CLog 2 7))
 test4 = id
 
+test5 :: Proxy (CLog x (x^y)) -> Proxy y
+test5 = id
+
 main :: IO ()
 main = defaultMain tests
 
@@ -35,13 +38,16 @@ tests = testGroup "ghc-typelits-natnormalise"
     [ testCase "GCD 6 8 ~ 2" $
       show (test1 Proxy) @?=
       "Proxy"
-    , testCase "GCD 6 8 + x ~ x + GCD 10 8" $
+    , testCase "forall x . GCD 6 8 + x ~ x + GCD 10 8" $
       show (test2 Proxy) @?=
       "Proxy"
     , testCase "CLog 3 10 ~ 3" $
       show (test3 Proxy) @?=
       "Proxy"
-    , testCase "CLog 3 10 + x ~ x + CLog 2 7" $
+    , testCase "forall x . CLog 3 10 + x ~ x + CLog 2 7" $
+      show (test4 Proxy) @?=
+      "Proxy"
+    , testCase "forall x>1 . CLog x (x^y) ~ y" $
       show (test4 Proxy) @?=
       "Proxy"
     ]
@@ -53,6 +59,8 @@ tests = testGroup "ghc-typelits-natnormalise"
     , testCase "CLog 0 4 ~ 100" $ testFail5 `throws` testFail5Errors
     , testCase "CLog 1 4 ~ 100" $ testFail5 `throws` testFail5Errors
     , testCase "CLog 4 0 ~ 0" $ testFail7 `throws` testFail7Errors
+    , testCase "CLog 1 (1^y) ~ y" $ testFail8 `throws` testFail8Errors
+    , testCase "CLog 0 (0^y) ~ y" $ testFail9 `throws` testFail9Errors
     ]
   ]
 

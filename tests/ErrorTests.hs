@@ -31,6 +31,12 @@ testFail6 = id
 testFail7 :: Proxy (CLog 4 0) -> Proxy 0
 testFail7 = id
 
+testFail8 :: Proxy (CLog 1 (1^y)) -> Proxy y
+testFail8 = id
+
+testFail9 :: Proxy (CLog 0 (0^y)) -> Proxy y
+testFail9 = id
+
 testFail1Errors =
   ["Expected type: Proxy (GCD 6 8) -> Proxy 4"
   ,"Actual type: Proxy 4 -> Proxy 4"
@@ -64,4 +70,14 @@ testFail6Errors =
 testFail7Errors =
   ["Expected type: Proxy (CLog 4 0) -> Proxy 0"
   ,"Actual type: Proxy 0 -> Proxy 0"
+  ]
+
+testFail8Errors =
+  ["Expected type: Proxy (CLog 1 (1 ^ y)) -> Proxy y"
+  ,"Actual type: Proxy y -> Proxy y"
+  ]
+
+testFail9Errors =
+  ["Expected type: Proxy (CLog 0 (0 ^ y)) -> Proxy y"
+  ,"Actual type: Proxy y -> Proxy y"
   ]

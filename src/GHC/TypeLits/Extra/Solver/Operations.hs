@@ -24,8 +24,8 @@ mergeGCD (I i) (I j) = I (gcd i j)
 mergeGCD x     y     = GCD x y
 
 mergeCLog :: ExtraOp -> ExtraOp -> Maybe ExtraOp
-mergeCLog (I i) (Exp (I j) b)
-  | i > 1 && i == j = Just b
+mergeCLog i (Exp j k)
+  | i == j && (i /= (I 0)) = Just k
 mergeCLog (I i) (I j)
   | i > 1 && j > 0 = Just (I (ceiling (logBase (fromInteger i :: Double)
                                       (fromInteger j))))
