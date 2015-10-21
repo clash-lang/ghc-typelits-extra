@@ -7,7 +7,7 @@ description:
   * @GHC.TypeLits.Extra.GCD@: a type-level @gcd@
   .
   * @GHC.TypeLits.Extra.CLog@: type-level equivalent of
-    "@clog x y = ceiling (logBase x y)@"
+    \"@clog x y = ceiling (logBase x y)@\"
   .
   And a custom solver for the above operations defined in
   @GHC.TypeLits.Extra.Solver@ as a GHC type-checker plugin. To use the plugin,
