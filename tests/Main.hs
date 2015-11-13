@@ -1,4 +1,4 @@
-{-# LANGUAGE DataKinds, TypeOperators, ScopedTypeVariables #-}
+{-# LANGUAGE CPP, DataKinds, TypeOperators, ScopedTypeVariables #-}
 
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.Normalise #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.Extra.Solver #-}
@@ -68,6 +68,15 @@ tests = testGroup "ghc-typelits-natnormalise"
 -- an exception whose string representation contains the given
 -- substrings.
 throws :: a -> [String] -> Assertion
-throws v xs =
-  (evaluate v >> assertFailure "No exception!")
-  `catch` \ (e :: SomeException) -> if all (`isInfixOf` show e) xs then return () else throw e
+throws v xs = do
+  result <- try (evaluate v)
+  case result of
+    Right _ -> assertFailure "No exception!"
+#if MIN_VERSION_base(4,9,0)
+    Left (TypeError msg) ->
+#else
+    Left (ErrorCall msg) ->
+#endif
+      if all (`isInfixOf` msg) xs
+         then return ()
+         else assertFailure msg
