@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 module GHC.TypeLits.Extra.Solver.Unify where
 
 -- external
@@ -8,9 +9,13 @@ import Outputable (Outputable (..), (<+>), ($$), text)
 import TcPluginM  (TcPluginM, tcPluginTrace)
 import TcRnMonad  (Ct)
 import TcTypeNats (typeNatExpTyCon)
-import Type       (TyVar, tcView, mkNumLitTy, mkTyConApp, mkTyVarTy)
+import Type       (TyVar, coreView, mkNumLitTy, mkTyConApp, mkTyVarTy)
 import TyCon      (TyCon)
-import TypeRep    (Type (..), TyLit (..))
+#if __GLASGOW_HASKELL__ >= 711
+import TyCoRep       (Type (..), TyLit (..))
+#else
+import TypeRep       (Type (..), TyLit (..))
+#endif
 import UniqSet    (UniqSet, emptyUniqSet, unionUniqSets, unitUniqSet)
 
 -- internal
@@ -22,7 +27,7 @@ data ExtraDefs = ExtraDefs
   }
 
 normaliseNat :: ExtraDefs -> Type -> Maybe ExtraOp
-normaliseNat defs ty | Just ty1 <- tcView ty = normaliseNat defs ty1
+normaliseNat defs ty | Just ty1 <- coreView ty = normaliseNat defs ty1
 normaliseNat _ (TyVarTy v)          = pure (V v)
 normaliseNat _ (LitTy (NumTyLit i)) = pure (I i)
 normaliseNat defs (TyConApp tc [x,y])
@@ -89,14 +94,14 @@ substsSubst s = map (\si -> si {siOP = substsExtra s (siOP si)})
 -- | Result of comparing two 'SOP' terms, returning a potential substitution
 -- list under which the two terms are equal.
 data UnifyResult
-  = Win             -- ^ Two terms are equal
-  | Lose            -- ^ Two terms are /not/ equal
-  | Draw ExtraSubst -- ^ Two terms are only equal if the given substitution holds
+  = Win  -- ^ Two terms are equal
+  | Lose -- ^ Two terms are /not/ equal
+  | Draw -- ^ We don't know if the two terms are equal
 
 instance Outputable UnifyResult where
-  ppr Win          = text "Win"
-  ppr (Draw subst) = text "Draw" <+> ppr subst
-  ppr Lose         = text "Lose"
+  ppr Win  = text "Win"
+  ppr Lose = text "Lose"
+  ppr Draw = text "Draw"
 
 unifyExtra :: Ct -> ExtraOp -> ExtraOp -> TcPluginM UnifyResult
 unifyExtra ct u v = do
@@ -106,7 +111,7 @@ unifyExtra ct u v = do
 unifyExtra' :: Ct -> ExtraOp -> ExtraOp -> UnifyResult
 unifyExtra' _ u v
   | eqFV u v  = if u == v then Win else Lose
-  | otherwise = Draw []
+  | otherwise = Draw
 
 fvOP :: ExtraOp -> UniqSet TyVar
 fvOP (I _)      = emptyUniqSet

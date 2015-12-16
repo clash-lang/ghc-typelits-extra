@@ -1,6 +1,11 @@
+{-# LANGUAGE CPP           #-}
 {-# LANGUAGE TupleSections #-}
 
 {-# OPTIONS_HADDOCK show-extensions #-}
+
+#if __GLASGOW_HASKELL__ < 711
+{-# OPTIONS_GHC -fno-warn-deprecations #-}
+#endif
 
 {-|
 Copyright  :  (C) 2015, Christiaan Baaij
@@ -14,9 +19,10 @@ where
 
 -- external
 import Data.Maybe          (catMaybes, mapMaybe)
-import GHC.TcPluginM.Extra (evByFiat, failWithProvenace, lookupModule,
-                            lookupName, newGiven, newWantedWithProvenance,
-                            tracePlugin)
+import GHC.TcPluginM.Extra (evByFiat, lookupModule, lookupName, tracePlugin)
+#if __GLASGOW_HASKELL__ < 711
+import GHC.TcPluginM.Extra (failWithProvenace)
+#endif
 
 -- GHC API
 import FastString (fsLit)
@@ -26,11 +32,11 @@ import Outputable (Outputable (..), (<+>), ($$), text)
 import Plugins    (Plugin (..), defaultPlugin)
 import TcEvidence (EvTerm)
 import TcPluginM  (TcPluginM, tcLookupTyCon, tcPluginTrace, zonkCt)
-import TcRnTypes  (Ct, TcPlugin(..), TcPluginResult (..), ctEvidence,
-                   ctEvPred, ctLoc, isGiven, isWanted, mkNonCanonical)
-import TcType     (mkEqPred, typeKind)
+import TcRnTypes  (Ct, TcPlugin(..), TcPluginResult (..), ctEvidence, ctEvPred,
+                   isWanted)
+import TcType      (typeKind)
 import Type       (EqRel (NomEq), Kind, PredTree (EqPred), classifyPredType,
-                   mkTyVarTy)
+                   eqType)
 import TysWiredIn (typeNatKind)
 
 -- internal
@@ -74,50 +80,35 @@ decideEqualSOP defs givens  _deriveds wanteds = do
       sr <- simplifyExtra (unit_givens ++ unit_wanteds)
       tcPluginTrace "normalised" (ppr sr)
       case sr of
-        Simplified subst evs ->
-          TcPluginOk (filter (isWanted . ctEvidence . snd) evs) <$>
-            mapM (substItemToCt defs) (filter (isWanted . ctEvidence . siNote) subst)
-        Impossible eq -> failWithProvenace $ fromNatEquality eq
-
-substItemToCt :: ExtraDefs -> SubstItem -> TcPluginM Ct
-substItemToCt defs si
-  | isGiven (ctEvidence ct) = mkNonCanonical <$> newGiven loc predicate evTm
-  | otherwise               = mkNonCanonical <$> newWantedWithProvenance
-                                                   (ctEvidence ct) predicate
-  where
-    predicate = mkEqPred ty1 ty2
-    ty1  = mkTyVarTy (siVar si)
-    ty2  = reifyExtraOp defs (siOP si)
-    ct   = siNote si
-    loc  = ctLoc ct
-    evTm = evByFiat "ghc-typelits-extra" ty1 ty2
+        Simplified evs -> return (TcPluginOk (filter (isWanted . ctEvidence . snd) evs) [])
+#if __GLASGOW_HASKELL__ >= 711
+        Impossible eq -> return (TcPluginContradiction [fromNatEquality eq])
+#else
+        Impossible eq -> failWithProvenace (fromNatEquality eq)
+#endif
 
 type NatEquality = (Ct,ExtraOp,ExtraOp)
 
 data SimplifyResult
-  = Simplified ExtraSubst [(EvTerm,Ct)]
+  = Simplified [(EvTerm,Ct)]
   | Impossible NatEquality
 
 instance Outputable SimplifyResult where
-  ppr (Simplified subst evs) = text "Simplified" $$ ppr subst $$ ppr evs
+  ppr (Simplified evs) = text "Simplified" $$ ppr evs
   ppr (Impossible eq)  = text "Impossible" <+> ppr eq
 
 simplifyExtra :: [NatEquality] -> TcPluginM SimplifyResult
-simplifyExtra eqs = tcPluginTrace "simplifyExtra" (ppr eqs) >> simples [] [] [] eqs
+simplifyExtra eqs = tcPluginTrace "simplifyExtra" (ppr eqs) >> simples [] eqs
   where
-    simples :: ExtraSubst -> [Maybe (EvTerm, Ct)] -> [NatEquality]
-            -> [NatEquality] -> TcPluginM SimplifyResult
-    simples subst evs _xs [] = return (Simplified subst (catMaybes evs))
-    simples subst evs xs (eq@(ct,u,v):eqs') = do
-      ur <- unifyExtra ct (substsExtra subst u) (substsExtra subst v)
+    simples :: [Maybe (EvTerm, Ct)] -> [NatEquality] -> TcPluginM SimplifyResult
+    simples evs [] = return (Simplified (catMaybes evs))
+    simples evs (eq@(ct,u,v):eqs') = do
+      ur <- unifyExtra ct u v
       tcPluginTrace "unifyExtra result" (ppr ur)
       case ur of
-        Win         -> simples subst (((,) <$> evMagic ct <*> pure ct):evs) []
-                               (xs ++ eqs')
-        Lose        -> return  (Impossible eq)
-        Draw []     -> simples subst evs (eq:xs) eqs'
-        Draw subst' -> simples (substsSubst subst' subst ++ subst') evs [eq]
-                               (xs ++ eqs')
+        Win  -> simples (((,) <$> evMagic ct <*> pure ct):evs) eqs'
+        Lose -> return  (Impossible eq)
+        Draw -> simples evs eqs'
 
 -- Extract the Nat equality constraints
 toNatEquality :: ExtraDefs -> Ct -> Maybe NatEquality
@@ -128,7 +119,7 @@ toNatEquality defs ct = case classifyPredType $ ctEvPred $ ctEvidence ct of
     _ -> Nothing
   where
     isNatKind :: Kind -> Bool
-    isNatKind = (== typeNatKind)
+    isNatKind = (`eqType` typeNatKind)
 
 fromNatEquality :: NatEquality -> Ct
 fromNatEquality (ct, _, _) = ct
