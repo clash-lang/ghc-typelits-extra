@@ -4,6 +4,7 @@
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.Extra.Solver #-}
 
 import Data.List (isInfixOf)
+import Data.Proxy
 import Control.Exception
 import Test.Tasty
 import Test.Tasty.HUnit
