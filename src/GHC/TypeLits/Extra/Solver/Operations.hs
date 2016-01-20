@@ -1,4 +1,10 @@
-module GHC.TypeLits.Extra.Solver.Operations where
+module GHC.TypeLits.Extra.Solver.Operations
+  ( ExtraOp (..)
+  , mergeGCD
+  , mergeCLog
+  , mergeExp
+  )
+where
 
 -- GHC API
 import Outputable (Outputable (..), (<+>), integer, text)
