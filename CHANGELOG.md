@@ -1,6 +1,6 @@
 # Changelog for the [`ghc-typelits-extra`](http://hackage.haskell.org/package/ghc-typelits-extra) package
 
-## 0.1.1
+## 0.1.1 *January 20th 2015*
 * Compile on GHC 8.0+
 
 ## 0.1 *October 21st 2015*
