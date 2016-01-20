@@ -1,3 +1,18 @@
+{-|
+Copyright  :  (C) 2015-2016, University of Twente
+License    :  BSD2 (see the file LICENSE)
+Maintainer :  Christiaan Baaij <christiaan.baaij@gmail.com>
+
+To use the plugin, add the
+
+@
+{\-\# OPTIONS_GHC -fplugin GHC.TypeLits.Extra.Solver \#-\}
+@
+
+pragma to the header of your file
+
+-}
+
 {-# LANGUAGE CPP           #-}
 {-# LANGUAGE TupleSections #-}
 
@@ -7,12 +22,6 @@
 {-# OPTIONS_GHC -fno-warn-deprecations #-}
 #endif
 
-{-|
-Copyright  :  (C) 2015, Christiaan Baaij
-License    :  BSD2 (see the file LICENSE)
-Maintainer :  Christiaan Baaij <christiaan.baaij@gmail.com>
-
--}
 module GHC.TypeLits.Extra.Solver
   ( plugin )
 where

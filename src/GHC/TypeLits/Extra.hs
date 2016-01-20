@@ -1,12 +1,5 @@
-{-# LANGUAGE DataKinds    #-}
-{-# LANGUAGE TypeFamilies #-}
-
-{-# OPTIONS_HADDOCK show-extensions #-}
-
-{-# LANGUAGE Safe #-}
-
 {-|
-Copyright  :  (C) 2015, University of Twente
+Copyright  :  (C) 2015-2016, University of Twente
 License    :  BSD2 (see the file LICENSE)
 Maintainer :  Christiaan Baaij <christiaan.baaij@gmail.com>
 
@@ -27,6 +20,14 @@ add the
 
 pragma to the header of your file.
 -}
+
+{-# LANGUAGE DataKinds    #-}
+{-# LANGUAGE TypeFamilies #-}
+
+{-# OPTIONS_HADDOCK show-extensions #-}
+
+{-# LANGUAGE Safe #-}
+
 module GHC.TypeLits.Extra where
 
 import GHC.TypeLits (Nat)
