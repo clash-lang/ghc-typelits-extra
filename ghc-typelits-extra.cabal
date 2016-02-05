@@ -66,7 +66,7 @@ test-suite test-ghc-typelits-extra
   Other-Modules:       ErrorTests
   build-depends:       base                      >= 4.8 && <5,
                        ghc-typelits-extra        >= 0.1.1,
-                       ghc-typelits-natnormalise >= 0.4,
+                       ghc-typelits-natnormalise >= 0.4.1,
                        tasty                     >= 0.10,
                        tasty-hunit               >= 0.9
   hs-source-dirs:      tests
