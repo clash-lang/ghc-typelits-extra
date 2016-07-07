@@ -34,18 +34,22 @@ import GHC.TcPluginM.Extra (failWithProvenace)
 #endif
 
 -- GHC API
+import Class      (Class, classMethods, className, classTyCon)
+import FamInst    (tcInstNewTyCon_maybe)
 import FastString (fsLit)
+import Id         (idType)
 import Module     (mkModuleName)
 import OccName    (mkTcOcc)
 import Outputable (Outputable (..), (<+>), ($$), text)
 import Plugins    (Plugin (..), defaultPlugin)
-import TcEvidence (EvTerm)
+import PrelNames  (knownNatClassName)
+import TcEvidence (EvTerm (EvLit), EvLit (EvNum), mkEvCast, mkTcSymCo, mkTcTransCo)
 import TcPluginM  (TcPluginM, tcLookupTyCon, tcPluginTrace, zonkCt)
 import TcRnTypes  (Ct, TcPlugin(..), TcPluginResult (..), ctEvidence, ctEvPred,
                    isWanted)
 import TcType      (typeKind)
-import Type       (EqRel (NomEq), Kind, PredTree (EqPred), classifyPredType,
-                   eqType)
+import Type       (EqRel (NomEq), Kind, PredTree (EqPred, ClassPred), Type, classifyPredType,
+                   dropForAlls, eqType, funResultTy, mkNumLitTy, tyConAppTyCon_maybe)
 import TysWiredIn (typeNatKind)
 
 -- internal
@@ -96,7 +100,8 @@ decideEqualSOP defs givens  _deriveds wanteds = do
         Impossible eq -> failWithProvenace (fromNatEquality eq)
 #endif
 
-type NatEquality = (Ct,ExtraOp,ExtraOp)
+type NatEquality  = (Ct,ExtraOp,ExtraOp)
+type KnConstraint = (Ct,Class,ExtraOp)
 
 data SimplifyResult
   = Simplified [(EvTerm,Ct)]
@@ -106,25 +111,33 @@ instance Outputable SimplifyResult where
   ppr (Simplified evs) = text "Simplified" $$ ppr evs
   ppr (Impossible eq)  = text "Impossible" <+> ppr eq
 
-simplifyExtra :: [NatEquality] -> TcPluginM SimplifyResult
+simplifyExtra :: [Either NatEquality KnConstraint] -> TcPluginM SimplifyResult
 simplifyExtra eqs = tcPluginTrace "simplifyExtra" (ppr eqs) >> simples [] eqs
   where
-    simples :: [Maybe (EvTerm, Ct)] -> [NatEquality] -> TcPluginM SimplifyResult
+    simples :: [Maybe (EvTerm, Ct)] -> [Either NatEquality KnConstraint] -> TcPluginM SimplifyResult
     simples evs [] = return (Simplified (catMaybes evs))
-    simples evs (eq@(ct,u,v):eqs') = do
+    simples evs (Left eq@((ct,u,v)):eqs') = do
       ur <- unifyExtra ct u v
       tcPluginTrace "unifyExtra result" (ppr ur)
       case ur of
         Win  -> simples (((,) <$> evMagic ct <*> pure ct):evs) eqs'
         Lose -> return  (Impossible eq)
         Draw -> simples evs eqs'
+    simples evs (Right (ct,cls,u):eqs') = do
+      tcPluginTrace "unifyExtra KnownNat result" (ppr u)
+      case u of
+        (I i) -> simples (((,) <$> makeLitDict cls (mkNumLitTy i) (EvNum i) <*> pure ct):evs) eqs'
+        _ -> simples evs eqs'
 
 -- Extract the Nat equality constraints
-toNatEquality :: ExtraDefs -> Ct -> Maybe NatEquality
+toNatEquality :: ExtraDefs -> Ct -> Maybe (Either NatEquality KnConstraint)
 toNatEquality defs ct = case classifyPredType $ ctEvPred $ ctEvidence ct of
     EqPred NomEq t1 t2
       | isNatKind (typeKind t1) || isNatKind (typeKind t1)
-      -> (ct,,) <$> normaliseNat defs t1 <*> normaliseNat defs t2
+      -> Left <$> ((ct,,) <$> normaliseNat defs t1 <*> normaliseNat defs t2)
+    ClassPred cls [ty]
+      | className cls == knownNatClassName
+      -> Right <$> ((ct,cls,) <$> normaliseNat defs ty)
     _ -> Nothing
   where
     isNatKind :: Kind -> Bool
@@ -149,3 +162,32 @@ evMagic :: Ct -> Maybe EvTerm
 evMagic ct = case classifyPredType $ ctEvPred $ ctEvidence ct of
     EqPred NomEq t1 t2 -> Just (evByFiat "ghc-typelits-extra" t1 t2)
     _                  -> Nothing
+
+makeLitDict :: Class -> Type -> EvLit -> Maybe EvTerm
+-- THIS CODE IS COPIED FROM:
+-- https://github.com/ghc/ghc/blob/8035d1a5dc7290e8d3d61446ee4861e0b460214e/compiler/typecheck/TcInteract.hs#L1973
+--
+-- makeLitDict adds a coercion that will convert the literal into a dictionary
+-- of the appropriate type.  See Note [KnownNat & KnownSymbol and EvLit]
+-- in TcEvidence.  The coercion happens in 2 steps:
+--
+--     Integer -> SNat n     -- representation of literal to singleton
+--     SNat n  -> KnownNat n -- singleton to dictionary
+--
+--     The process is mirrored for Symbols:
+--     String    -> SSymbol n
+--     SSymbol n -> KnownSymbol n -}
+makeLitDict clas ty evLit
+  | Just (_, co_dict) <- tcInstNewTyCon_maybe (classTyCon clas) [ty]
+    -- co_dict :: KnownNat n ~ SNat n
+  , [ meth ]   <- classMethods clas
+  , Just tcRep <- tyConAppTyCon_maybe -- SNat
+                    $ funResultTy     -- SNat n
+                    $ dropForAlls     -- KnownNat n => SNat n
+                    $ idType meth     -- forall n. KnownNat n => SNat n
+  , Just (_, co_rep) <- tcInstNewTyCon_maybe tcRep [ty]
+        -- SNat n ~ Integer
+  , let ev_tm = mkEvCast (EvLit evLit) (mkTcSymCo (mkTcTransCo co_dict co_rep))
+  = Just ev_tm
+  | otherwise
+  = Nothing

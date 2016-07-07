@@ -29,6 +29,12 @@ test4 = id
 test5 :: Proxy (CLog x (x^y)) -> Proxy y
 test5 = id
 
+test6 :: Integer
+test6 = natVal (Proxy :: Proxy (CLog 6 8))
+
+test7 :: Integer
+test7 = natVal (Proxy :: Proxy (CLog 3 10))
+
 main :: IO ()
 main = defaultMain tests
 
@@ -50,6 +56,12 @@ tests = testGroup "ghc-typelits-natnormalise"
     , testCase "forall x>1 . CLog x (x^y) ~ y" $
       show (test4 Proxy) @?=
       "Proxy"
+    , testCase "KnownNat (CLog 6 8) ~ 2" $
+      show test6 @?=
+      "2"
+    , testCase "KnownNat (CLog 3 10) ~ 3" $
+      show test7 @?=
+      "3"
     ]
   , testGroup "errors"
     [ testCase "GCD 6 8 ~ 4" $ testFail1 `throws` testFail1Errors
@@ -61,6 +73,7 @@ tests = testGroup "ghc-typelits-natnormalise"
     , testCase "CLog 4 0 ~ 0" $ testFail7 `throws` testFail7Errors
     , testCase "CLog 1 (1^y) ~ y" $ testFail8 `throws` testFail8Errors
     , testCase "CLog 0 (0^y) ~ y" $ testFail9 `throws` testFail9Errors
+    , testCase "No instance (KnownNat (CLog 1 4))" $ testFail10 `throws` testFail10Errors
     ]
   ]
 
