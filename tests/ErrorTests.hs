@@ -40,6 +40,9 @@ testFail9 = id
 testFail10 :: Integer
 testFail10 = natVal (Proxy :: Proxy (CLog 1 4))
 
+testFail11 :: Integer
+testFail11 = natVal (Proxy :: Proxy ((CLog 4 4) - (CLog 2 4)))
+
 testFail1Errors =
   ["Expected type: Proxy (GCD 6 8) -> Proxy 4"
   ,"Actual type: Proxy 4 -> Proxy 4"
@@ -87,3 +90,6 @@ testFail9Errors =
 
 testFail10Errors =
   ["No instance for (KnownNat (CLog 1 4))"]
+
+testFail11Errors =
+  ["No instance for (KnownNat (CLog 4 4 - CLog 2 4))"]

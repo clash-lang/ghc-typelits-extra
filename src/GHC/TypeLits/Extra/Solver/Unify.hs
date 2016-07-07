@@ -21,7 +21,8 @@ import Data.Function (on)
 import Outputable (Outputable (..), ($$), text)
 import TcPluginM  (TcPluginM, tcPluginTrace)
 import TcRnMonad  (Ct)
-import TcTypeNats (typeNatExpTyCon)
+import TcTypeNats (typeNatAddTyCon, typeNatExpTyCon, typeNatMulTyCon,
+                   typeNatSubTyCon)
 import Type       (TyVar, coreView)
 import TyCon      (TyCon)
 #if __GLASGOW_HASKELL__ >= 711
@@ -51,6 +52,15 @@ normaliseNat defs (TyConApp tc [x,y])
                               mergeCLog x' y'
   | tc == typeNatExpTyCon = mergeExp <$> normaliseNat defs x
                                      <*> normaliseNat defs y
+  | tc == typeNatAddTyCon = do x' <- normaliseNat defs x
+                               y' <- normaliseNat defs y
+                               mergeAdd x' y'
+  | tc == typeNatSubTyCon = do x' <- normaliseNat defs x
+                               y' <- normaliseNat defs y
+                               mergeSub x' y'
+  | tc == typeNatMulTyCon = do x' <- normaliseNat defs x
+                               y' <- normaliseNat defs y
+                               mergeMul x' y'
   | otherwise = Nothing
 normaliseNat _ _ = Nothing
 
