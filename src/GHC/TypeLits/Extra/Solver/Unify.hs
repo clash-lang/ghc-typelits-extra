@@ -15,15 +15,16 @@ module GHC.TypeLits.Extra.Solver.Unify
 where
 
 -- external
-import Data.Function (on)
+import Control.Monad.Trans.Class (lift)
+import Control.Monad.Trans.Maybe (MaybeT (..))
+import Data.Function             (on)
 
 -- GHC API
 import Outputable (Outputable (..), ($$), text)
-import TcPluginM  (TcPluginM, tcPluginTrace)
+import TcPluginM  (TcPluginM, matchFam, tcPluginTrace)
 import TcRnMonad  (Ct)
-import TcTypeNats (typeNatAddTyCon, typeNatExpTyCon, typeNatMulTyCon,
-                   typeNatSubTyCon)
-import Type       (TyVar, coreView)
+import TcTypeNats (typeNatExpTyCon)
+import Type       (TyVar, coreView, mkNumLitTy, mkTyConApp, mkTyVarTy)
 import TyCon      (TyCon)
 #if __GLASGOW_HASKELL__ >= 711
 import TyCoRep    (Type (..), TyLit (..))
@@ -40,7 +41,7 @@ data ExtraDefs = ExtraDefs
   , clogTyCon :: TyCon
   }
 
-normaliseNat :: ExtraDefs -> Type -> Maybe ExtraOp
+normaliseNat :: ExtraDefs -> Type -> MaybeT TcPluginM ExtraOp
 normaliseNat defs ty | Just ty1 <- coreView ty = normaliseNat defs ty1
 normaliseNat _ (TyVarTy v)          = pure (V v)
 normaliseNat _ (LitTy (NumTyLit i)) = pure (I i)
@@ -49,20 +50,18 @@ normaliseNat defs (TyConApp tc [x,y])
                                    <*> normaliseNat defs y
   | tc == clogTyCon defs = do x' <- normaliseNat defs x
                               y' <- normaliseNat defs y
-                              mergeCLog x' y'
+                              MaybeT (return (mergeCLog x' y'))
   | tc == typeNatExpTyCon = mergeExp <$> normaliseNat defs x
                                      <*> normaliseNat defs y
-  | tc == typeNatAddTyCon = do x' <- normaliseNat defs x
-                               y' <- normaliseNat defs y
-                               mergeAdd x' y'
-  | tc == typeNatSubTyCon = do x' <- normaliseNat defs x
-                               y' <- normaliseNat defs y
-                               mergeSub x' y'
-  | tc == typeNatMulTyCon = do x' <- normaliseNat defs x
-                               y' <- normaliseNat defs y
-                               mergeMul x' y'
-  | otherwise = Nothing
-normaliseNat _ _ = Nothing
+
+normaliseNat defs (TyConApp tc tys) = do
+  tys'   <- mapM (fmap (reifyEOP defs) . normaliseNat defs) tys
+  tyM    <- lift (matchFam tc tys')
+  case tyM of
+    Just (_,ty) -> normaliseNat defs ty
+    _ -> return (C (TyConApp tc tys))
+
+normaliseNat _ t = return (C t)
 
 -- | Result of comparing two 'SOP' terms, returning a potential substitution
 -- list under which the two terms are equal.
@@ -83,15 +82,38 @@ unifyExtra ct u v = do
 
 unifyExtra' :: Ct -> ExtraOp -> ExtraOp -> UnifyResult
 unifyExtra' _ u v
-  | eqFV u v  = if u == v then Win else Lose
+  | eqFV u v  = if u == v then Win
+                          else if containsConstants u || containsConstants v
+                                  then Draw
+                                  else Lose
   | otherwise = Draw
 
 fvOP :: ExtraOp -> UniqSet TyVar
 fvOP (I _)      = emptyUniqSet
 fvOP (V v)      = unitUniqSet v
+fvOP (C _)      = emptyUniqSet
 fvOP (GCD x y)  = fvOP x `unionUniqSets` fvOP y
 fvOP (CLog x y) = fvOP x `unionUniqSets` fvOP y
 fvOP (Exp x y)  = fvOP x `unionUniqSets` fvOP y
 
 eqFV :: ExtraOp -> ExtraOp -> Bool
 eqFV = (==) `on` fvOP
+
+reifyEOP :: ExtraDefs -> ExtraOp -> Type
+reifyEOP _ (I i) = mkNumLitTy i
+reifyEOP _ (V v) = mkTyVarTy v
+reifyEOP _ (C c) = c
+reifyEOP defs (GCD x y) = mkTyConApp (gcdTyCon defs) [reifyEOP defs x
+                                                     ,reifyEOP defs y]
+reifyEOP defs (CLog x y) = mkTyConApp (clogTyCon defs) [reifyEOP defs x
+                                                       ,reifyEOP defs y]
+reifyEOP defs (Exp x y) = mkTyConApp typeNatExpTyCon [reifyEOP defs x
+                                                     ,reifyEOP defs y]
+
+containsConstants :: ExtraOp -> Bool
+containsConstants (I _) = False
+containsConstants (V _) = False
+containsConstants (C _) = True
+containsConstants (GCD x y)  = containsConstants x || containsConstants y
+containsConstants (CLog x y) = containsConstants x || containsConstants y
+containsConstants (Exp x y)  = containsConstants x || containsConstants y

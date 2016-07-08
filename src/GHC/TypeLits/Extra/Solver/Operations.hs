@@ -17,11 +17,12 @@ where
 
 -- GHC API
 import Outputable (Outputable (..), (<+>), integer, text)
-import Type       (TyVar)
+import Type       (Type, TyVar, mkNumLitTy)
 
 data ExtraOp
   = I    Integer
   | V    TyVar
+  | C    Type
   | GCD  ExtraOp ExtraOp
   | CLog ExtraOp ExtraOp
   | Exp  ExtraOp ExtraOp
@@ -30,6 +31,7 @@ data ExtraOp
 instance Outputable ExtraOp where
   ppr (I i)      = integer i
   ppr (V v)      = ppr v
+  ppr (C c)      = ppr c
   ppr (GCD x y)  = text "GCD (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
   ppr (CLog x y) = text "CLog (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
   ppr (Exp x y)  = text "Exp (" <+> ppr x <+> text "," <+> ppr y <+> text ")"

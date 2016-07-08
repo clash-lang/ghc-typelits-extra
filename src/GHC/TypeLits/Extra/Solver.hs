@@ -27,10 +27,13 @@ module GHC.TypeLits.Extra.Solver
 where
 
 -- external
-import Data.Maybe          (catMaybes, mapMaybe)
-import GHC.TcPluginM.Extra (evByFiat, lookupModule, lookupName, tracePlugin)
+import Control.Monad             ((<=<))
+import Control.Monad.Trans.Maybe (MaybeT (..))
+import Data.Maybe                (catMaybes)
+import GHC.TcPluginM.Extra       (evByFiat, lookupModule, lookupName,
+                                  tracePlugin)
 #if __GLASGOW_HASKELL__ < 711
-import GHC.TcPluginM.Extra (failWithProvenace)
+import GHC.TcPluginM.Extra       (failWithProvenace)
 #endif
 
 -- GHC API
@@ -49,7 +52,7 @@ import TcRnTypes  (Ct, TcPlugin(..), TcPluginResult (..), ctEvidence, ctEvPred,
                    isWanted)
 import TcType      (typeKind)
 import Type       (EqRel (NomEq), Kind, PredTree (EqPred, ClassPred), Type, classifyPredType,
-                   dropForAlls, eqType, funResultTy, mkNumLitTy, tyConAppTyCon_maybe)
+                   dropForAlls, eqType, funResultTy, tyConAppTyCon_maybe)
 import TysWiredIn (typeNatKind)
 
 -- internal
@@ -85,11 +88,11 @@ decideEqualSOP _    _givens _deriveds []      = return (TcPluginOk [] [])
 decideEqualSOP defs givens  _deriveds wanteds = do
   -- GHC 7.10.1 puts deriveds with the wanteds, so filter them out
   let wanteds' = filter (isWanted . ctEvidence) wanteds
-  let unit_wanteds = mapMaybe (toNatEquality defs) wanteds'
+  unit_wanteds <- catMaybes <$> mapM (runMaybeT . toNatEquality defs) wanteds'
   case unit_wanteds of
     [] -> return (TcPluginOk [] [])
     _  -> do
-      unit_givens <- mapMaybe (toNatEquality defs) <$> mapM zonkCt givens
+      unit_givens <- catMaybes <$> mapM ((runMaybeT . toNatEquality defs) <=< zonkCt) givens
       sr <- simplifyExtra (unit_givens ++ unit_wanteds)
       tcPluginTrace "normalised" (ppr sr)
       case sr of
@@ -101,7 +104,7 @@ decideEqualSOP defs givens  _deriveds wanteds = do
 #endif
 
 type NatEquality  = (Ct,ExtraOp,ExtraOp)
-type KnConstraint = (Ct,Class,ExtraOp)
+type KnConstraint = (Ct,Class,Type,ExtraOp)
 
 data SimplifyResult
   = Simplified [(EvTerm,Ct)]
@@ -123,22 +126,22 @@ simplifyExtra eqs = tcPluginTrace "simplifyExtra" (ppr eqs) >> simples [] eqs
         Win  -> simples (((,) <$> evMagic ct <*> pure ct):evs) eqs'
         Lose -> return  (Impossible eq)
         Draw -> simples evs eqs'
-    simples evs (Right (ct,cls,u):eqs') = do
+    simples evs (Right (ct,cls,ty,u):eqs') = do
       tcPluginTrace "unifyExtra KnownNat result" (ppr u)
       case u of
-        (I i) -> simples (((,) <$> makeLitDict cls (mkNumLitTy i) (EvNum i) <*> pure ct):evs) eqs'
+        (I i) -> simples (((,) <$> makeLitDict cls ty (EvNum i) <*> pure ct):evs) eqs'
         _ -> simples evs eqs'
 
 -- Extract the Nat equality constraints
-toNatEquality :: ExtraDefs -> Ct -> Maybe (Either NatEquality KnConstraint)
+toNatEquality :: ExtraDefs -> Ct -> MaybeT TcPluginM (Either NatEquality KnConstraint)
 toNatEquality defs ct = case classifyPredType $ ctEvPred $ ctEvidence ct of
     EqPred NomEq t1 t2
       | isNatKind (typeKind t1) || isNatKind (typeKind t1)
       -> Left <$> ((ct,,) <$> normaliseNat defs t1 <*> normaliseNat defs t2)
     ClassPred cls [ty]
       | className cls == knownNatClassName
-      -> Right <$> ((ct,cls,) <$> normaliseNat defs ty)
-    _ -> Nothing
+      -> Right <$> ((ct,cls,ty,) <$> normaliseNat defs ty)
+    _ -> fail "Nothing"
   where
     isNatKind :: Kind -> Bool
     isNatKind = (`eqType` typeNatKind)

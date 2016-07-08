@@ -1,10 +1,12 @@
-{-# LANGUAGE CPP, DataKinds, TypeOperators, ScopedTypeVariables #-}
+{-# LANGUAGE CPP, DataKinds, TypeOperators, ScopedTypeVariables, KindSignatures,
+             TypeFamilies, UndecidableInstances #-}
 
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.Normalise #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.Extra.Solver #-}
 
 import Data.List (isInfixOf)
 import Data.Proxy
+import Data.Type.Bool
 import Control.Exception
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -38,6 +40,13 @@ test7 = natVal (Proxy :: Proxy (CLog 3 10))
 test8 :: Integer
 test8 = natVal (Proxy :: Proxy ((CLog 2 4) * (3 ^ (CLog 2 4))))
 
+type family Max (x :: Nat) (y :: Nat) :: Nat
+  where
+    Max x y = If (x <=? y) y x
+
+test9 :: Integer
+test9 = natVal (Proxy :: Proxy (Max (CLog 2 4) (CLog 4 20)))
+
 main :: IO ()
 main = defaultMain tests
 
@@ -68,6 +77,9 @@ tests = testGroup "ghc-typelits-natnormalise"
     , testCase "KnownNat ((CLog 2 4) * (3 ^ (CLog 2 4)))) ~ 18" $
       show test8 @?=
       "18"
+    , testCase "KnownNat (Max (CLog 2 4) (CLog 4 20)) ~ 3" $
+      show test9 @?=
+      "3"
     ]
   , testGroup "errors"
     [ testCase "GCD 6 8 ~ 4" $ testFail1 `throws` testFail1Errors
