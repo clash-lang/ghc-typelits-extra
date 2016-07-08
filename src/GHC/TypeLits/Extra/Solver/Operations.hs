@@ -4,8 +4,14 @@ License    :  BSD2 (see the file LICENSE)
 Maintainer :  Christiaan Baaij <christiaan.baaij@gmail.com>
 -}
 
+{-# LANGUAGE CPP, GeneralizedNewtypeDeriving #-}
+#if __GLASGOW_HASKELL__ < 711
+{-# LANGUAGE StandaloneDeriving #-}
+#endif
+
 module GHC.TypeLits.Extra.Solver.Operations
   ( ExtraOp (..)
+  , EType (..)
   , mergeGCD
   , mergeCLog
   , mergeExp
@@ -17,12 +23,24 @@ where
 
 -- GHC API
 import Outputable (Outputable (..), (<+>), integer, text)
-import Type       (Type, TyVar, mkNumLitTy)
+import Type       (Type, TyVar)
+#if __GLASGOW_HASKELL__ >= 711
+import Type (eqType)
+#endif
+
+newtype EType = EType Type
+  deriving Outputable
+#if __GLASGOW_HASKELL__ < 711
+deriving instance Eq EType
+#else
+instance Eq EType where
+  (EType t1) == (EType t2) = eqType t1 t2
+#endif
 
 data ExtraOp
   = I    Integer
   | V    TyVar
-  | C    Type
+  | C    EType
   | GCD  ExtraOp ExtraOp
   | CLog ExtraOp ExtraOp
   | Exp  ExtraOp ExtraOp

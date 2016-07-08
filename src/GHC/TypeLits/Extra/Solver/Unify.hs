@@ -59,9 +59,9 @@ normaliseNat defs (TyConApp tc tys) = do
   tyM    <- lift (matchFam tc tys')
   case tyM of
     Just (_,ty) -> normaliseNat defs ty
-    _ -> return (C (TyConApp tc tys))
+    _ -> return (C (EType (TyConApp tc tys)))
 
-normaliseNat _ t = return (C t)
+normaliseNat _ t = return (C (EType t))
 
 -- | Result of comparing two 'SOP' terms, returning a potential substitution
 -- list under which the two terms are equal.
@@ -102,7 +102,7 @@ eqFV = (==) `on` fvOP
 reifyEOP :: ExtraDefs -> ExtraOp -> Type
 reifyEOP _ (I i) = mkNumLitTy i
 reifyEOP _ (V v) = mkTyVarTy v
-reifyEOP _ (C c) = c
+reifyEOP _ (C (EType c)) = c
 reifyEOP defs (GCD x y) = mkTyConApp (gcdTyCon defs) [reifyEOP defs x
                                                      ,reifyEOP defs y]
 reifyEOP defs (CLog x y) = mkTyConApp (clogTyCon defs) [reifyEOP defs x
