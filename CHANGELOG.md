@@ -1,6 +1,6 @@
 # Changelog for the [`ghc-typelits-extra`](http://hackage.haskell.org/package/ghc-typelits-extra) package
 
-## 0.1.2
+## 0.1.2 *July 8th 2016*
 * Solve KnownNat constraints over CLog and GCD, i.e., KnownNat (CLog 2 4)
 
 ## 0.1.1 *January 20th 2016*
