@@ -4,7 +4,7 @@ License    :  BSD2 (see the file LICENSE)
 Maintainer :  Christiaan Baaij <christiaan.baaij@gmail.com>
 -}
 
-{-# LANGUAGE CPP, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE CPP, GeneralizedNewtypeDeriving, MagicHash #-}
 #if __GLASGOW_HASKELL__ < 711
 {-# LANGUAGE StandaloneDeriving #-}
 #endif
@@ -18,8 +18,14 @@ module GHC.TypeLits.Extra.Solver.Operations
   , mergeAdd
   , mergeSub
   , mergeMul
+  , clogBase
   )
 where
+
+-- external
+import GHC.Base               (isTrue#,(==#),(+#))
+import GHC.Integer            (smallInteger)
+import GHC.Integer.Logarithms (integerLogBase#)
 
 -- GHC API
 import Outputable (Outputable (..), (<+>), integer, text)
@@ -61,11 +67,8 @@ mergeGCD x     y     = GCD x y
 mergeCLog :: ExtraOp -> ExtraOp -> Maybe ExtraOp
 mergeCLog i (Exp j k)
   | i == j && (i /= (I 0)) = Just k
-mergeCLog (I i) (I j)
-  | i > 1 && j > 0 = Just (I (ceiling (logBase (fromInteger i :: Double)
-                                      (fromInteger j))))
-  | otherwise      = Nothing
-mergeCLog x y = Just (CLog x y)
+mergeCLog (I i) (I j)      = I <$> clogBase i j
+mergeCLog x y              = Just (CLog x y)
 
 mergeExp :: ExtraOp -> ExtraOp -> ExtraOp
 mergeExp (I i) (I j) = I (i^j)
@@ -84,3 +87,13 @@ mergeSub _     _     = Nothing
 mergeMul :: ExtraOp -> ExtraOp -> Maybe ExtraOp
 mergeMul (I i) (I j) = Just (I (i * j))
 mergeMul _     _     = Nothing
+
+-- | \x y -> ceiling (logBase x y), x > 1 && y > 0
+clogBase :: Integer -> Integer -> Maybe Integer
+clogBase x y | x > 1 && y > 0 =
+  let z1 = integerLogBase# x y
+      z2 = integerLogBase# x (y-1)
+  in  if (isTrue# (z1 ==# z2))
+         then Just (smallInteger (z1 +# 1#))
+         else Just (smallInteger z1)
+clogBase _ _ = Nothing

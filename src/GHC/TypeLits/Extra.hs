@@ -42,7 +42,9 @@ type family GCD (x :: Nat) (y :: Nat) :: Nat where
 -- | Type-level equivalent of:
 --
 -- @
--- clog x y = 'ceiling' ('logBase' x y)
+-- import GHC.Integer.Logarithms
+--
+-- clog x y = integerLogBase# x y
 -- @
 --
 -- Note that additional equations are provided by the type-checker plugin solver

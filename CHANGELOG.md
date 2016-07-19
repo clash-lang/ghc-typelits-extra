@@ -1,5 +1,9 @@
 # Changelog for the [`ghc-typelits-extra`](http://hackage.haskell.org/package/ghc-typelits-extra) package
 
+## 0.1.3 *July 19th 2016*
+* Fixes bugs:
+  * Rounding error in `CLog` calculation
+
 ## 0.1.2 *July 8th 2016*
 * Solve KnownNat constraints over CLog and GCD, i.e., KnownNat (CLog 2 4)
 
