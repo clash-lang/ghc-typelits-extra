@@ -15,10 +15,6 @@ module GHC.TypeLits.Extra.Solver.Operations
   , mergeGCD
   , mergeCLog
   , mergeExp
-  , mergeAdd
-  , mergeSub
-  , mergeMul
-  , clogBase
   )
 where
 
@@ -73,20 +69,6 @@ mergeCLog x y              = Just (CLog x y)
 mergeExp :: ExtraOp -> ExtraOp -> ExtraOp
 mergeExp (I i) (I j) = I (i^j)
 mergeExp x     y     = Exp x y
-
-mergeAdd :: ExtraOp -> ExtraOp -> Maybe ExtraOp
-mergeAdd (I i) (I j) = Just (I (i + j))
-mergeAdd _     _     = Nothing
-
-mergeSub :: ExtraOp -> ExtraOp -> Maybe ExtraOp
-mergeSub (I i) (I j)
-  | let s = i - j
-  , s >= 0 = Just (I s)
-mergeSub _     _     = Nothing
-
-mergeMul :: ExtraOp -> ExtraOp -> Maybe ExtraOp
-mergeMul (I i) (I j) = Just (I (i * j))
-mergeMul _     _     = Nothing
 
 -- | \x y -> ceiling (logBase x y), x > 1 && y > 0
 clogBase :: Integer -> Integer -> Maybe Integer
