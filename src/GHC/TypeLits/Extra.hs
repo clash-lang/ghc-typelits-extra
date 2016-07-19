@@ -7,8 +7,7 @@ Additional type-level operations on 'GHC.TypeLits.Nat':
 
   * 'GCD': a type-level 'gcd'
 
-  * 'CLog': type-level equivalent of
-    \"@clog x y = 'ceiling' ('logBase' x y)@\"
+  * 'CLog': type-level equivalent of /the ceiling of/ <https://hackage.haskell.org/package/integer-gmp/docs/GHC-Integer-Logarithms.html#v:integerLogBase-35- integerLogBase#>
 
 A custom solver for the above operations defined is defined in
 "GHC.TypeLits.Extra.Solver" as a GHC type-checker plugin. To use the plugin,
@@ -39,13 +38,7 @@ import GHC.TypeLits (Nat)
 type family GCD (x :: Nat) (y :: Nat) :: Nat where
   GCD 0 x = x -- Additional equations are provided by the custom solver
 
--- | Type-level equivalent of:
---
--- @
--- import GHC.Integer.Logarithms
---
--- clog x y = integerLogBase# x y
--- @
+-- | Type-level equivalent of /the ceiling of/ <https://hackage.haskell.org/package/integer-gmp/docs/GHC-Integer-Logarithms.html#v:integerLogBase-35- integerLogBase#>
 --
 -- Note that additional equations are provided by the type-checker plugin solver
 -- "GHC.TypeLits.Extra.Solver".

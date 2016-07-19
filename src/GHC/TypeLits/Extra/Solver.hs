@@ -63,8 +63,7 @@ import GHC.TypeLits.Extra.Solver.Unify
 --
 --   * @GHC.TypeLits.Extra.GCD@: a type-level 'gcd'
 --
---   * @GHC.TypeLits.Extra.CLog@: type-level equivalent of
---     \"@clog x y = 'ceiling' ('logBase' x y)@\"
+--   * @GHC.TypeLits.Extra.CLog@: type-level equivalent of /the ceiling of/ <https://hackage.haskell.org/package/integer-gmp/docs/GHC-Integer-Logarithms.html#v:integerLogBase-35- integerLogBase#>
 --
 -- To use the plugin, add
 --
