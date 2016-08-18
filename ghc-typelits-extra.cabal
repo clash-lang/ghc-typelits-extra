@@ -1,12 +1,24 @@
 name:                ghc-typelits-extra
-version:             0.1.3
+version:             0.2
 synopsis:            Additional type-level operations on GHC.TypeLits.Nat
 description:
   Additional type-level operations on @GHC.TypeLits.Nat@:
   .
-  * @GHC.TypeLits.Extra.GCD@: a type-level @gcd@
+  * @Max@: type-level <http://hackage.haskell.org/package/base-4.8.2.0/docs/Prelude.html#v:max max>
   .
-  * @GHC.TypeLits.Extra.CLog@: type-level equivalent /the ceiling of/ <https://hackage.haskell.org/package/integer-gmp/docs/GHC-Integer-Logarithms.html#v:integerLogBase-35- integerLogBase#>
+  * @Min@: type-level <http://hackage.haskell.org/package/base-4.8.2.0/docs/Prelude.html#v:min min>
+  .
+  * @Div@: type-level <http://hackage.haskell.org/package/base-4.8.2.0/docs/Prelude.html#v:div div>
+  .
+  * @Mod@: type-level <http://hackage.haskell.org/package/base-4.8.2.0/docs/Prelude.html#v:mod mod>
+  .
+  * @FLog@: type-level equivalent of <https://hackage.haskell.org/package/integer-gmp/docs/GHC-Integer-Logarithms.html#v:integerLogBase-35- integerLogBase#>
+  .
+  * @CLog@: type-level equivalent of /the ceiling of/ <https://hackage.haskell.org/package/integer-gmp/docs/GHC-Integer-Logarithms.html#v:integerLogBase-35- integerLogBase#>
+  .
+  * @GCD@: a type-level <http://hackage.haskell.org/package/base-4.8.2.0/docs/Prelude.html#v:gcd gcd>
+  .
+  * @LCM@: a type-level <http://hackage.haskell.org/package/base-4.8.2.0/docs/Prelude.html#v:lcm lcm>
   .
   And a custom solver for the above operations defined in
   @GHC.TypeLits.Extra.Solver@ as a GHC type-checker plugin. To use the plugin,
@@ -45,17 +57,28 @@ library
                        GHC.TypeLits.Extra.Solver
   other-modules:       GHC.TypeLits.Extra.Solver.Unify
                        GHC.TypeLits.Extra.Solver.Operations
-  build-depends:       base                >= 4.8  && <5,
-                       ghc                 >= 7.10 && <8.2,
-                       ghc-tcplugins-extra >= 0.2,
-                       integer-gmp         >= 1.0 && <1.1,
-                       transformers        >= 0.4.2.0 && < 0.6
+  build-depends:       base                      >= 4.8     && <5,
+                       ghc                       >= 7.10    && <8.2,
+                       ghc-tcplugins-extra       >= 0.2,
+                       ghc-typelits-knownnat     >= 0.2     && <0.3,
+                       ghc-typelits-natnormalise >= 0.5     && <0.6,
+                       integer-gmp               >= 1.0     && <1.1,
+                       singletons                >= 2.2     && <3,
+                       transformers              >= 0.4.2.0 && <0.6
   hs-source-dirs:      src
   default-language:    Haskell2010
-  other-extensions:    CPP
-                       DataKinds
+  other-extensions:    DataKinds
+                       FlexibleInstances
+                       GADTs
+                       MagicHash
+                       MultiParamTypeClasses
+                       ScopedTypeVariables
+                       TemplateHaskell
                        TupleSections
+                       TypeApplications
                        TypeFamilies
+                       TypeOperators
+                       UndecidableInstances
   if flag(deverror)
     ghc-options:         -Wall -Werror
   else
@@ -67,14 +90,13 @@ test-suite test-ghc-typelits-extra
   Other-Modules:       ErrorTests
   build-depends:       base                      >= 4.8 && <5,
                        ghc-typelits-extra        >= 0.1.1,
+                       ghc-typelits-knownnat     >= 0.2,
                        ghc-typelits-natnormalise >= 0.4.1,
                        tasty                     >= 0.10,
                        tasty-hunit               >= 0.9
   hs-source-dirs:      tests
   default-language:    Haskell2010
-  other-extensions:    CPP
-                       DataKinds
+  other-extensions:    DataKinds
                        TypeOperators
-                       ScopedTypeVariables
   if flag(deverror)
     ghc-options:       -O0 -dcore-lint

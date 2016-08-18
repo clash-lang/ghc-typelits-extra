@@ -1,5 +1,13 @@
 # Changelog for the [`ghc-typelits-extra`](http://hackage.haskell.org/package/ghc-typelits-extra) package
 
+# 0.2
+* New type-level operations:
+  * `Max`: type-level `max`
+  * `Min`: type-level `min`
+  * `Div`: type-level `div`
+  * `Mod`: type-level `mod`
+  * `LCM`: type-level `lcm`
+
 ## 0.1.3 *July 19th 2016*
 * Fixes bugs:
   * Rounding error in `CLog` calculation

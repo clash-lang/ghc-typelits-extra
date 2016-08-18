@@ -2,6 +2,7 @@
 
 {-# OPTIONS_GHC -fdefer-type-errors #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.Normalise #-}
+{-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.Extra.Solver #-}
 
 module ErrorTests where
@@ -89,7 +90,7 @@ testFail9Errors =
   ]
 
 testFail10Errors =
-  ["No instance for (KnownNat (CLog 1 4))"]
+  ["Couldn't match type ‘'False’ with ‘'True’"]
 
 testFail11Errors =
-  ["No instance for (KnownNat (CLog 4 4 - CLog 2 4))"]
+  ["Couldn't match type ‘CLog 2 4 <=? CLog 4 4’ with ‘'True’"]
