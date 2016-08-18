@@ -135,7 +135,7 @@ simplifyExtra eqs = tcPluginTrace "simplifyExtra" (ppr eqs) >> simples [] eqs
 toNatEquality :: ExtraDefs -> Ct -> MaybeT TcPluginM (Either NatEquality KnConstraint)
 toNatEquality defs ct = case classifyPredType $ ctEvPred $ ctEvidence ct of
     EqPred NomEq t1 t2
-      | isNatKind (typeKind t1) || isNatKind (typeKind t1)
+      | isNatKind (typeKind t1) || isNatKind (typeKind t2)
       -> Left <$> ((ct,,) <$> normaliseNat defs t1 <*> normaliseNat defs t2)
     ClassPred cls [ty]
       | className cls == knownNatClassName
