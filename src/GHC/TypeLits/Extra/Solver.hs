@@ -49,9 +49,21 @@ import GHC.TypeLits.Extra.Solver.Unify
 
 -- | A solver implement as a type-checker plugin for:
 --
---   * @GHC.TypeLits.Extra.GCD@: a type-level 'gcd'
+--     * 'Max': type-level 'max'
 --
---   * @GHC.TypeLits.Extra.CLog@: type-level equivalent of /the ceiling of/ <https://hackage.haskell.org/package/integer-gmp/docs/GHC-Integer-Logarithms.html#v:integerLogBase-35- integerLogBase#>
+--     * 'Min': type-level 'min'
+--
+--     * 'Div': type-level 'div'
+--
+--     * 'Mod': type-level 'mod'
+--
+--     * 'FLog': type-level equivalent of <https://hackage.haskell.org/package/integer-gmp/docs/GHC-Integer-Logarithms.html#v:integerLogBase-35- integerLogBase#>
+--
+--     * 'CLog': type-level equivalent of /the ceiling of/ <https://hackage.haskell.org/package/integer-gmp/docs/GHC-Integer-Logarithms.html#v:integerLogBase-35- integerLogBase#>
+--
+--     * 'GCD': a type-level 'gcd'
+--
+--     * 'LCM': a type-level 'lcm'
 --
 -- To use the plugin, add
 --

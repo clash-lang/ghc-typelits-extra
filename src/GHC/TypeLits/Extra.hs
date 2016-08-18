@@ -50,7 +50,16 @@ pragma to the header of your file.
 {-# LANGUAGE Trustworthy #-}
 
 module GHC.TypeLits.Extra
-  (Max, Min, Div, Mod, FLog, CLog, GCD, LCM)
+  ( -- * Type-level operations on `Nat`
+    Max
+  , Min
+  , Div
+  , Mod
+  , FLog
+  , CLog
+  , GCD
+  , LCM
+  )
 where
 
 import Data.Proxy             (Proxy (..))
