@@ -43,6 +43,30 @@ test8 = natVal (Proxy :: Proxy ((CLog 2 4) * (3 ^ (CLog 2 4))))
 test9 :: Integer
 test9 = natVal (Proxy :: Proxy (Max (CLog 2 4) (CLog 4 20)))
 
+test10 :: Proxy (Div 9 3) -> Proxy 3
+test10 = id
+
+test11 :: Proxy (Div 9 4) -> Proxy 2
+test11 = id
+
+test12 :: Proxy (Mod 9 3) -> Proxy 0
+test12 = id
+
+test13 :: Proxy (Mod 9 4) -> Proxy 1
+test13 = id
+
+test14 :: Integer
+test14 = natVal (Proxy :: Proxy (Div 9 3))
+
+test15 :: Integer
+test15 = natVal (Proxy :: Proxy (Mod 9 4))
+
+test16 :: Proxy (LCM 18 7) -> Proxy 126
+test16 = id
+
+test17 :: Integer
+test17 = natVal (Proxy :: Proxy (LCM 18 7))
+
 main :: IO ()
 main = defaultMain tests
 
@@ -62,7 +86,7 @@ tests = testGroup "ghc-typelits-natnormalise"
       show (test4 Proxy) @?=
       "Proxy"
     , testCase "forall x>1 . CLog x (x^y) ~ y" $
-      show (test4 Proxy) @?=
+      show (test5 Proxy) @?=
       "Proxy"
     , testCase "KnownNat (CLog 6 8) ~ 2" $
       show test6 @?=
@@ -76,6 +100,30 @@ tests = testGroup "ghc-typelits-natnormalise"
     , testCase "KnownNat (Max (CLog 2 4) (CLog 4 20)) ~ 3" $
       show test9 @?=
       "3"
+    , testCase "Div 9 3 ~ 3" $
+      show (test10 Proxy) @?=
+      "Proxy"
+    , testCase "Div 9 4 ~ 2" $
+      show (test11 Proxy) @?=
+      "Proxy"
+    , testCase "Mod 9 3 ~ 0" $
+      show (test12 Proxy) @?=
+      "Proxy"
+    , testCase "Mod 9 4 ~ 1" $
+      show (test13 Proxy) @?=
+      "Proxy"
+    , testCase "KnownNat (Div 9 3) ~ 3" $
+      show test14 @?=
+      "3"
+    , testCase "KnownNat (Mod 9 4) ~ 1" $
+      show test15 @?=
+      "1"
+    , testCase "LCM 18 7 ~ 126" $
+      show (test16 Proxy) @?=
+      "Proxy"
+    , testCase "KnownNat (LCM 18 7) ~ 126" $
+      show test17 @?=
+      "126"
     ]
   , testGroup "errors"
     [ testCase "GCD 6 8 ~ 4" $ testFail1 `throws` testFail1Errors
