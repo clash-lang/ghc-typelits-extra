@@ -151,9 +151,10 @@ instance (KnownNat x, KnownNat y, 2 <= x, 1 <= y) => KnownNat2 $(nameToSymbol ''
                  y  = natVal (Proxy @y)
                  z1 = integerLogBase# x y
                  z2 = integerLogBase# x (y-1)
-             in  if (isTrue# (z1 ==# z2))
-                    then SNatKn (smallInteger (z1 +# 1#))
-                    else SNatKn (smallInteger z1)
+             in  case y of
+                    1 -> SNatKn 0
+                    _ | isTrue# (z1 ==# z2) -> SNatKn (smallInteger (z1 +# 1#))
+                      | otherwise           -> SNatKn (smallInteger z1)
 
 -- | Type-level greatest common denominator (GCD).
 --

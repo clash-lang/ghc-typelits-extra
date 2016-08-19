@@ -70,6 +70,18 @@ test17 = natVal (Proxy :: Proxy (LCM 18 7))
 test18 :: Proxy ((LCM 6 4) + x) -> Proxy (x + (LCM 3 4))
 test18 = id
 
+test19 :: Integer
+test19 = natVal (Proxy :: Proxy (FLog 3 1))
+
+test20 :: Proxy (FLog 3 1) -> Proxy 0
+test20 = id
+
+test21 :: Integer
+test21 = natVal (Proxy :: Proxy (CLog 3 1))
+
+test22 :: Proxy (CLog 3 1) -> Proxy 0
+test22 = id
+
 main :: IO ()
 main = defaultMain tests
 
@@ -129,6 +141,18 @@ tests = testGroup "ghc-typelits-natnormalise"
       "126"
     , testCase "forall x . LCM 3 4 + x ~ x + LCM 6 4" $
       show (test18 Proxy) @?=
+      "Proxy"
+    , testCase "KnownNat (FLog 3 1) ~ 0" $
+      show test19 @?=
+      "0"
+    , testCase "FLog 3 1 ~ 0" $
+      show (test20 Proxy) @?=
+      "Proxy"
+    , testCase "KnownNat (CLog 3 1) ~ 0" $
+      show test21 @?=
+      "0"
+    , testCase "CLog 3 1 ~ 0" $
+      show (test22 Proxy) @?=
       "Proxy"
     ]
   , testGroup "errors"

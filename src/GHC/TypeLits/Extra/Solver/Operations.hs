@@ -97,7 +97,8 @@ clogBase :: Integer -> Integer -> Maybe Integer
 clogBase x y | y > 0 =
   let z1 = integerLogBase# x y
       z2 = integerLogBase# x (y-1)
-  in  if (isTrue# (z1 ==# z2))
-         then Just (smallInteger (z1 +# 1#))
-         else Just (smallInteger z1)
+  in  case y of
+         1 -> Just 0
+         _ | isTrue# (z1 ==# z2) -> Just (smallInteger (z1 +# 1#))
+           | otherwise           -> Just (smallInteger z1)
 clogBase _ _ = Nothing
