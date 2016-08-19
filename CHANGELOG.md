@@ -7,6 +7,8 @@
   * `Div`: type-level `div`
   * `Mod`: type-level `mod`
   * `LCM`: type-level `lcm`
+* Fixes bugs:
+  * `CLog b 1` doesn't reduce to `0`
 
 ## 0.1.3 *July 19th 2016*
 * Fixes bugs:
