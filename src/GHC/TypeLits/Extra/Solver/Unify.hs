@@ -32,7 +32,9 @@ import UniqSet    (UniqSet, emptyUniqSet, unionUniqSets, unitUniqSet)
 import GHC.TypeLits.Extra.Solver.Operations
 
 data ExtraDefs = ExtraDefs
-  { divTyCon  :: TyCon
+  { maxTyCon  :: TyCon
+  , minTyCon  :: TyCon
+  , divTyCon  :: TyCon
   , modTyCon  :: TyCon
   , flogTyCon :: TyCon
   , clogTyCon :: TyCon
@@ -46,6 +48,10 @@ normaliseNat defs ty | Just ty1 <- coreView ty = normaliseNat defs ty1
 normaliseNat _ (TyVarTy v)          = pure (V v)
 normaliseNat _ (LitTy (NumTyLit i)) = pure (I i)
 normaliseNat defs (TyConApp tc [x,y])
+  | tc == maxTyCon defs = mergeMax <$> normaliseNat defs x
+                                   <*> normaliseNat defs y
+  | tc == minTyCon defs = mergeMin <$> normaliseNat defs x
+                                   <*> normaliseNat defs y
   | tc == divTyCon defs = do x' <- normaliseNat defs x
                              y' <- normaliseNat defs y
                              MaybeT (return (mergeDiv x' y'))
@@ -106,6 +112,8 @@ fvOP :: ExtraOp -> UniqSet TyVar
 fvOP (I _)      = emptyUniqSet
 fvOP (V v)      = unitUniqSet v
 fvOP (C _)      = emptyUniqSet
+fvOP (Max x y)  = fvOP x `unionUniqSets` fvOP y
+fvOP (Min x y)  = fvOP x `unionUniqSets` fvOP y
 fvOP (Div x y)  = fvOP x `unionUniqSets` fvOP y
 fvOP (Mod x y)  = fvOP x `unionUniqSets` fvOP y
 fvOP (FLog x y) = fvOP x `unionUniqSets` fvOP y
@@ -122,6 +130,10 @@ reifyEOP :: ExtraDefs -> ExtraOp -> Type
 reifyEOP _ (I i) = mkNumLitTy i
 reifyEOP _ (V v) = mkTyVarTy v
 reifyEOP _ (C (CType c)) = c
+reifyEOP defs (Max x y)  = mkTyConApp (maxTyCon defs)  [reifyEOP defs x
+                                                       ,reifyEOP defs y]
+reifyEOP defs (Min x y)  = mkTyConApp (minTyCon defs)  [reifyEOP defs x
+                                                       ,reifyEOP defs y]
 reifyEOP defs (Div x y)  = mkTyConApp (divTyCon defs)  [reifyEOP defs x
                                                        ,reifyEOP defs y]
 reifyEOP defs (Mod x y)  = mkTyConApp (modTyCon defs)  [reifyEOP defs x
@@ -139,10 +151,13 @@ reifyEOP defs (LCM x y)  = mkTyConApp (lcmTyCon defs)  [reifyEOP defs x
 reifyEOP defs (Exp x y)  = mkTyConApp typeNatExpTyCon  [reifyEOP defs x
                                                        ,reifyEOP defs y]
 
+
 containsConstants :: ExtraOp -> Bool
 containsConstants (I _) = False
 containsConstants (V _) = False
 containsConstants (C _) = True
+containsConstants (Max x y)  = containsConstants x || containsConstants y
+containsConstants (Min x y)  = containsConstants x || containsConstants y
 containsConstants (Div x y)  = containsConstants x || containsConstants y
 containsConstants (Mod x y)  = containsConstants x || containsConstants y
 containsConstants (FLog x y) = containsConstants x || containsConstants y

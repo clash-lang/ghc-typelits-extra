@@ -94,6 +94,12 @@ test25 = id
 test26 :: Proxy (b ^ (Log b y)) -> Proxy y
 test26 = id
 
+test27 :: Proxy (Max n n) -> Proxy n
+test27 = id
+
+test28 :: Proxy (Min n n) -> Proxy n
+test28 = id
+
 main :: IO ()
 main = defaultMain tests
 
@@ -177,6 +183,12 @@ tests = testGroup "ghc-typelits-natnormalise"
       "Proxy"
     , testCase "forall x>1 . x ^ (Log x y) ~ y" $
       show (test26 Proxy) @?=
+      "Proxy"
+    , testCase "forall x . Max x x ~ x" $
+      show (test27 Proxy) @?=
+      "Proxy"
+    , testCase "forall x . Min x x ~ x" $
+      show (test28 Proxy) @?=
       "Proxy"
     ]
   , testGroup "errors"

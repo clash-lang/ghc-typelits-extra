@@ -143,7 +143,9 @@ fromNatEquality (ct, _, _) = ct
 lookupExtraDefs :: TcPluginM ExtraDefs
 lookupExtraDefs = do
     md <- lookupModule myModule myPackage
-    ExtraDefs <$> look md "Div"
+    ExtraDefs <$> look md "Max"
+              <*> look md "Min"
+              <*> look md "Div"
               <*> look md "Mod"
               <*> look md "FLog"
               <*> look md "CLog"

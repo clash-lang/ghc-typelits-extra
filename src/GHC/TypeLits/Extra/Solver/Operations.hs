@@ -16,6 +16,8 @@ module GHC.TypeLits.Extra.Solver.Operations
   , mergeGCD
   , mergeLCM
   , mergeExp
+  , mergeMax
+  , mergeMin
   )
 where
 
@@ -41,12 +43,16 @@ data ExtraOp
   | GCD  ExtraOp ExtraOp
   | LCM  ExtraOp ExtraOp
   | Exp  ExtraOp ExtraOp
+  | Max  ExtraOp ExtraOp
+  | Min  ExtraOp ExtraOp
   deriving Eq
 
 instance Outputable ExtraOp where
   ppr (I i)      = integer i
   ppr (V v)      = ppr v
   ppr (C c)      = ppr c
+  ppr (Max x y)  = text "Max (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
+  ppr (Min x y)  = text "Min (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
   ppr (Div x y)  = text "Div (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
   ppr (Mod x y)  = text "Mod (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
   ppr (FLog x y) = text "FLog (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
@@ -55,6 +61,20 @@ instance Outputable ExtraOp where
   ppr (GCD x y)  = text "GCD (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
   ppr (LCM x y)  = text "GCD (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
   ppr (Exp x y)  = text "Exp (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
+
+mergeMax :: ExtraOp -> ExtraOp -> ExtraOp
+mergeMax (I 0) y              = y
+mergeMax x     (I 0)          = x
+mergeMax (I i) (I j)          = I (max i j)
+mergeMax x     y     | x == y = x
+mergeMax x     y              = Max x y
+
+mergeMin :: ExtraOp -> ExtraOp -> ExtraOp
+mergeMin (I 0) _y             = I 0
+mergeMin _x    (I 0)          = I 0
+mergeMin (I i) (I j)          = I (min i j)
+mergeMin x     y     | x == y = x
+mergeMin x     y              = Min x y
 
 mergeDiv :: ExtraOp -> ExtraOp -> Maybe ExtraOp
 mergeDiv _     (I 0)      = Nothing
