@@ -51,12 +51,16 @@ pragma to the header of your file.
 
 module GHC.TypeLits.Extra
   ( -- * Type-level operations on `Nat`
+    -- ** Order
     Max
   , Min
+    -- ** Integral
   , Div
   , Mod
+    -- ** Logarithm
   , FLog
   , CLog
+    -- Numeric
   , GCD
   , LCM
   )
