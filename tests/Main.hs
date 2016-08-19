@@ -67,6 +67,9 @@ test16 = id
 test17 :: Integer
 test17 = natVal (Proxy :: Proxy (LCM 18 7))
 
+test18 :: Proxy ((LCM 6 4) + x) -> Proxy (x + (LCM 3 4))
+test18 = id
+
 main :: IO ()
 main = defaultMain tests
 
@@ -124,19 +127,29 @@ tests = testGroup "ghc-typelits-natnormalise"
     , testCase "KnownNat (LCM 18 7) ~ 126" $
       show test17 @?=
       "126"
+    , testCase "forall x . LCM 3 4 + x ~ x + LCM 6 4" $
+      show (test18 Proxy) @?=
+      "Proxy"
     ]
   , testGroup "errors"
-    [ testCase "GCD 6 8 ~ 4" $ testFail1 `throws` testFail1Errors
-    , testCase "GCD 6 8 + x ~ x + GCD 9 6" $ testFail2 `throws` testFail2Errors
-    , testCase "CLog 3 10 ~ 2" $ testFail3 `throws` testFail3Errors
-    , testCase "CLog 3 10 + x ~ x + CLog 2 9" $ testFail4 `throws` testFail4Errors
-    , testCase "CLog 0 4 ~ 100" $ testFail5 `throws` testFail5Errors
-    , testCase "CLog 1 4 ~ 100" $ testFail5 `throws` testFail5Errors
-    , testCase "CLog 4 0 ~ 0" $ testFail7 `throws` testFail7Errors
-    , testCase "CLog 1 (1^y) ~ y" $ testFail8 `throws` testFail8Errors
-    , testCase "CLog 0 (0^y) ~ y" $ testFail9 `throws` testFail9Errors
+    [ testCase "GCD 6 8 /~ 4" $ testFail1 `throws` testFail1Errors
+    , testCase "GCD 6 8 + x /~ x + GCD 9 6" $ testFail2 `throws` testFail2Errors
+    , testCase "CLog 3 10 /~ 2" $ testFail3 `throws` testFail3Errors
+    , testCase "CLog 3 10 + x /~ x + CLog 2 9" $ testFail4 `throws` testFail4Errors
+    , testCase "CLog 0 4 /~ 100" $ testFail5 `throws` testFail5Errors
+    , testCase "CLog 1 4 /~ 100" $ testFail5 `throws` testFail5Errors
+    , testCase "CLog 4 0 /~ 0" $ testFail7 `throws` testFail7Errors
+    , testCase "CLog 1 (1^y) /~ y" $ testFail8 `throws` testFail8Errors
+    , testCase "CLog 0 (0^y) /~ y" $ testFail9 `throws` testFail9Errors
     , testCase "No instance (KnownNat (CLog 1 4))" $ testFail10 `throws` testFail10Errors
     , testCase "No instance (KnownNat (CLog 4 4 - CLog 2 4))" $ testFail11 `throws` testFail11Errors
+    , testCase "Div 4 0 /~ 4" $ testFail12 `throws` testFail12Errors
+    , testCase "Mod 4 0 /~ 4" $ testFail13 `throws` testFail13Errors
+    , testCase "FLog 0 4 /~ 100" $ testFail14 `throws` testFail14Errors
+    , testCase "FLog 1 4 /~ 100" $ testFail15 `throws` testFail15Errors
+    , testCase "FLog 4 0 /~ 0" $ testFail16 `throws` testFail16Errors
+    , testCase "GCD 6 8 /~ 4" $ testFail17 `throws` testFail17Errors
+    , testCase "GCD 6 8 + x /~ x + GCD 9 6" $ testFail18 `throws` testFail18Errors
     ]
   ]
 

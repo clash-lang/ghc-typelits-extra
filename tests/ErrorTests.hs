@@ -44,6 +44,27 @@ testFail10 = natVal (Proxy :: Proxy (CLog 1 4))
 testFail11 :: Integer
 testFail11 = natVal (Proxy :: Proxy ((CLog 4 4) - (CLog 2 4)))
 
+testFail12 :: Proxy (Div 4 0) -> Proxy 4
+testFail12 = id
+
+testFail13 :: Proxy (Mod 4 0) -> Proxy 4
+testFail13 = id
+
+testFail14 :: Proxy (FLog 0 4) -> Proxy 100
+testFail14 = id
+
+testFail15 :: Proxy (FLog 1 4) -> Proxy 100
+testFail15 = id
+
+testFail16 :: Proxy (FLog 4 0) -> Proxy 0
+testFail16 = id
+
+testFail17 :: Proxy (LCM 6 8) -> Proxy 48
+testFail17 = id
+
+testFail18 :: Proxy ((LCM 6 8) + x) -> Proxy (x + (LCM 6 9))
+testFail18 = id
+
 testFail1Errors =
   ["Expected type: Proxy (GCD 6 8) -> Proxy 4"
   ,"Actual type: Proxy 4 -> Proxy 4"
@@ -94,3 +115,38 @@ testFail10Errors =
 
 testFail11Errors =
   ["Couldn't match type ‘CLog 2 4 <=? CLog 4 4’ with ‘'True’"]
+
+testFail12Errors =
+  ["Expected type: Proxy (Div 4 0) -> Proxy 4"
+  ,"Actual type: Proxy 4 -> Proxy 4"
+  ]
+
+testFail13Errors =
+  ["Expected type: Proxy (Mod 4 0) -> Proxy 4"
+  ,"Actual type: Proxy 4 -> Proxy 4"
+  ]
+
+testFail14Errors =
+  ["Expected type: Proxy (FLog 0 4) -> Proxy 100"
+  ,"Actual type: Proxy 100 -> Proxy 100"
+  ]
+
+testFail15Errors =
+  ["Expected type: Proxy (FLog 1 4) -> Proxy 100"
+  ,"Actual type: Proxy 100 -> Proxy 100"
+  ]
+
+testFail16Errors =
+  ["Expected type: Proxy (FLog 4 0) -> Proxy 0"
+  ,"Actual type: Proxy 0 -> Proxy 0"
+  ]
+
+testFail17Errors =
+  ["Expected type: Proxy (LCM 6 8) -> Proxy 48"
+  ,"Actual type: Proxy 48 -> Proxy 48"
+  ]
+
+testFail18Errors =
+  ["Expected type: Proxy (LCM 6 8 + x) -> Proxy (x + LCM 6 9)"
+  ,"Actual type: Proxy (x + LCM 6 9) -> Proxy (x + LCM 6 9)"
+  ]
