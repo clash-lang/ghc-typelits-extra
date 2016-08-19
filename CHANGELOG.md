@@ -1,11 +1,13 @@
 # Changelog for the [`ghc-typelits-extra`](http://hackage.haskell.org/package/ghc-typelits-extra) package
 
-# 0.2
+# 0.2 *August 19th 2016*
 * New type-level operations:
   * `Max`: type-level `max`
   * `Min`: type-level `min`
   * `Div`: type-level `div`
   * `Mod`: type-level `mod`
+  * `FLog`: floor of logBase
+  * `Log`: exact integer logBase (i.e. where `floor (logBase b x) ~ ceiling (logBase b x)` holds)
   * `LCM`: type-level `lcm`
 * Fixes bugs:
   * `CLog b 1` doesn't reduce to `0`
