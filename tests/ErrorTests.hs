@@ -65,6 +65,12 @@ testFail17 = id
 testFail18 :: Proxy ((LCM 6 8) + x) -> Proxy (x + (LCM 6 9))
 testFail18 = id
 
+testFail19 :: Integer
+testFail19 = natVal (Proxy :: Proxy (Log 3 0))
+
+testFail20 :: Integer
+testFail20 = natVal (Proxy :: Proxy (Log 3 10))
+
 testFail1Errors =
   ["Expected type: Proxy (GCD 6 8) -> Proxy 4"
   ,"Actual type: Proxy 4 -> Proxy 4"
@@ -150,3 +156,9 @@ testFail18Errors =
   ["Expected type: Proxy (LCM 6 8 + x) -> Proxy (x + LCM 6 9)"
   ,"Actual type: Proxy (x + LCM 6 9) -> Proxy (x + LCM 6 9)"
   ]
+
+testFail19Errors =
+  ["Couldn't match type ‘FLog 3 0’ with ‘CLog 3 0’"]
+
+testFail20Errors =
+  ["Couldn't match type ‘FLog 3 10’ with ‘CLog 3 10’"]

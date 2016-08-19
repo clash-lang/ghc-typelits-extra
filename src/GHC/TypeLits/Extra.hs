@@ -14,8 +14,13 @@ Additional type-level operations on 'GHC.TypeLits.Nat':
   * 'Mod': type-level 'mod'
 
   * 'FLog': type-level equivalent of <https://hackage.haskell.org/package/integer-gmp/docs/GHC-Integer-Logarithms.html#v:integerLogBase-35- integerLogBase#>
+    .i.e. the exact integer equivalent to "@'floor' ('logBase' x y)@"
 
   * 'CLog': type-level equivalent of /the ceiling of/ <https://hackage.haskell.org/package/integer-gmp/docs/GHC-Integer-Logarithms.html#v:integerLogBase-35- integerLogBase#>
+    .i.e. the exact integer equivalent to "@'ceiling' ('logBase' x y)@"
+
+  * 'Log': type-level equivalent of <https://hackage.haskell.org/package/integer-gmp/docs/GHC-Integer-Logarithms.html#v:integerLogBase-35- integerLogBase#>
+     where the operation only reduces when "@'floor' ('logBase' b x) ~ 'ceiling' ('logBase' b x)@"
 
   * 'GCD': a type-level 'gcd'
 
@@ -51,7 +56,7 @@ pragma to the header of your file.
 
 module GHC.TypeLits.Extra
   ( -- * Type-level operations on `Nat`
-    -- ** Order
+    -- ** Ord
     Max
   , Min
     -- ** Integral
@@ -60,6 +65,8 @@ module GHC.TypeLits.Extra
     -- ** Logarithm
   , FLog
   , CLog
+    -- *** Exact logarithm
+  , Log
     -- Numeric
   , GCD
   , LCM
@@ -124,6 +131,7 @@ instance (KnownNat x, KnownNat y, 1 <= y) => KnownNat2 $(nameToSymbol ''Mod) x y
   natSing2 = SNatKn (mod (natVal (Proxy @x)) (natVal (Proxy @y)))
 
 -- | Type-level equivalent of <https://hackage.haskell.org/package/integer-gmp/docs/GHC-Integer-Logarithms.html#v:integerLogBase-35- integerLogBase#>
+-- .i.e. the exact integer equivalent to "@'floor' ('logBase' x y)@"
 --
 -- Note that additional equations are provided by the type-checker plugin solver
 -- "GHC.TypeLits.Extra.Solver".
@@ -137,6 +145,7 @@ instance (KnownNat x, KnownNat y, 2 <= x, 1 <= y) => KnownNat2 $(nameToSymbol ''
   natSing2 = SNatKn (smallInteger (integerLogBase# (natVal (Proxy @x)) (natVal (Proxy @y))))
 
 -- | Type-level equivalent of /the ceiling of/ <https://hackage.haskell.org/package/integer-gmp/docs/GHC-Integer-Logarithms.html#v:integerLogBase-35- integerLogBase#>
+-- .i.e. the exact integer equivalent to "@'ceiling' ('logBase' x y)@"
 --
 -- Note that additional equations are provided by the type-checker plugin solver
 -- "GHC.TypeLits.Extra.Solver".
@@ -155,6 +164,28 @@ instance (KnownNat x, KnownNat y, 2 <= x, 1 <= y) => KnownNat2 $(nameToSymbol ''
                     1 -> SNatKn 0
                     _ | isTrue# (z1 ==# z2) -> SNatKn (smallInteger (z1 +# 1#))
                       | otherwise           -> SNatKn (smallInteger z1)
+
+-- | Type-level equivalent of <https://hackage.haskell.org/package/integer-gmp/docs/GHC-Integer-Logarithms.html#v:integerLogBase-35- integerLogBase#>
+-- where the operation only reduces when:
+--
+-- @
+-- 'FLog' b x ~ 'CLog' b x
+-- @
+--
+-- Additionally, the following property holds for 'Log':
+--
+-- > (b ^ (Log b x)) ~ x
+--
+-- Note that additional equations are provided by the type-checker plugin solver
+-- "GHC.TypeLits.Extra.Solver".
+type family Log (x :: Nat) (y :: Nat) :: Nat where
+  Log 2 1 = 0 -- Additional equations are provided by the custom solver
+
+genDefunSymbols [''Log]
+
+instance (KnownNat x, KnownNat y, FLog x y ~ CLog x y) => KnownNat2 $(nameToSymbol ''Log) x y where
+  type KnownNatF2 $(nameToSymbol ''Log) = LogSym0
+  natSing2 = SNatKn (smallInteger (integerLogBase# (natVal (Proxy @x)) (natVal (Proxy @y))))
 
 -- | Type-level greatest common denominator (GCD).
 --

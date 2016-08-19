@@ -12,6 +12,7 @@ module GHC.TypeLits.Extra.Solver.Operations
   , mergeMod
   , mergeFLog
   , mergeCLog
+  , mergeLog
   , mergeGCD
   , mergeLCM
   , mergeExp
@@ -36,8 +37,9 @@ data ExtraOp
   | Mod  ExtraOp ExtraOp
   | FLog ExtraOp ExtraOp
   | CLog ExtraOp ExtraOp
+  | Log  ExtraOp ExtraOp
   | GCD  ExtraOp ExtraOp
-  | LCM ExtraOp ExtraOp
+  | LCM  ExtraOp ExtraOp
   | Exp  ExtraOp ExtraOp
   deriving Eq
 
@@ -49,6 +51,7 @@ instance Outputable ExtraOp where
   ppr (Mod x y)  = text "Mod (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
   ppr (FLog x y) = text "FLog (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
   ppr (CLog x y) = text "CLog (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
+  ppr (Log x y)  = text "Log (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
   ppr (GCD x y)  = text "GCD (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
   ppr (LCM x y)  = text "GCD (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
   ppr (Exp x y)  = text "Exp (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
@@ -75,6 +78,12 @@ mergeCLog i     (Exp j k) | i == j = Just k
 mergeCLog (I i) (I j)              = I <$> clogBase i j
 mergeCLog x     y                  = Just (CLog x y)
 
+mergeLog :: ExtraOp -> ExtraOp -> Maybe ExtraOp
+mergeLog (I i) _          | i < 2   = Nothing
+mergeLog b     (Exp b' y) | b == b' = Just y
+mergeLog (I i) (I j)                = I <$> exactLogBase i j
+mergeLog x     y                    = Just (Log x y)
+
 mergeGCD :: ExtraOp -> ExtraOp -> ExtraOp
 mergeGCD (I i) (I j) = I (gcd i j)
 mergeGCD x     y     = GCD x y
@@ -84,8 +93,9 @@ mergeLCM (I i) (I j) = I (lcm i j)
 mergeLCM x     y     = GCD x y
 
 mergeExp :: ExtraOp -> ExtraOp -> ExtraOp
-mergeExp (I i) (I j) = I (i^j)
-mergeExp x     y     = Exp x y
+mergeExp (I i) (I j)                = I (i^j)
+mergeExp b     (Log b' y) | b == b' = y
+mergeExp x     y                    = Exp x y
 
 -- | \x y -> logBase x y, x > 1 && y > 0
 flogBase :: Integer -> Integer -> Maybe Integer
@@ -102,3 +112,14 @@ clogBase x y | y > 0 =
          _ | isTrue# (z1 ==# z2) -> Just (smallInteger (z1 +# 1#))
            | otherwise           -> Just (smallInteger z1)
 clogBase _ _ = Nothing
+
+-- | \x y -> logBase x y, x > 1 && y > 0, logBase x y == ceiling (logBase x y)
+exactLogBase :: Integer -> Integer -> Maybe Integer
+exactLogBase x y | y > 0 =
+  let z1 = integerLogBase# x y
+      z2 = integerLogBase# x (y-1)
+  in  case y of
+        1 -> Just 0
+        _ | isTrue# (z1 ==# z2) -> Nothing
+          | otherwise           -> Just (smallInteger z1)
+exactLogBase _ _ = Nothing

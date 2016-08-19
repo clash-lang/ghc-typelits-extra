@@ -36,6 +36,7 @@ data ExtraDefs = ExtraDefs
   , modTyCon  :: TyCon
   , flogTyCon :: TyCon
   , clogTyCon :: TyCon
+  , logTyCon  :: TyCon
   , gcdTyCon  :: TyCon
   , lcmTyCon  :: TyCon
   }
@@ -57,6 +58,9 @@ normaliseNat defs (TyConApp tc [x,y])
   | tc == clogTyCon defs = do x' <- normaliseNat defs x
                               y' <- normaliseNat defs y
                               MaybeT (return (mergeCLog x' y'))
+  | tc == logTyCon defs = do x' <- normaliseNat defs x
+                             y' <- normaliseNat defs y
+                             MaybeT (return (mergeLog x' y'))
   | tc == gcdTyCon defs = mergeGCD <$> normaliseNat defs x
                                    <*> normaliseNat defs y
   | tc == lcmTyCon defs = mergeLCM <$> normaliseNat defs x
@@ -106,6 +110,7 @@ fvOP (Div x y)  = fvOP x `unionUniqSets` fvOP y
 fvOP (Mod x y)  = fvOP x `unionUniqSets` fvOP y
 fvOP (FLog x y) = fvOP x `unionUniqSets` fvOP y
 fvOP (CLog x y) = fvOP x `unionUniqSets` fvOP y
+fvOP (Log x y)  = fvOP x `unionUniqSets` fvOP y
 fvOP (GCD x y)  = fvOP x `unionUniqSets` fvOP y
 fvOP (LCM x y)  = fvOP x `unionUniqSets` fvOP y
 fvOP (Exp x y)  = fvOP x `unionUniqSets` fvOP y
@@ -125,6 +130,8 @@ reifyEOP defs (CLog x y) = mkTyConApp (clogTyCon defs) [reifyEOP defs x
                                                        ,reifyEOP defs y]
 reifyEOP defs (FLog x y) = mkTyConApp (flogTyCon defs) [reifyEOP defs x
                                                        ,reifyEOP defs y]
+reifyEOP defs (Log x y)  = mkTyConApp (logTyCon defs)  [reifyEOP defs x
+                                                       ,reifyEOP defs y]
 reifyEOP defs (GCD x y)  = mkTyConApp (gcdTyCon defs)  [reifyEOP defs x
                                                        ,reifyEOP defs y]
 reifyEOP defs (LCM x y)  = mkTyConApp (lcmTyCon defs)  [reifyEOP defs x
@@ -140,6 +147,7 @@ containsConstants (Div x y)  = containsConstants x || containsConstants y
 containsConstants (Mod x y)  = containsConstants x || containsConstants y
 containsConstants (FLog x y) = containsConstants x || containsConstants y
 containsConstants (CLog x y) = containsConstants x || containsConstants y
+containsConstants (Log x y)  = containsConstants x || containsConstants y
 containsConstants (GCD x y)  = containsConstants x || containsConstants y
 containsConstants (LCM x y)  = containsConstants x || containsConstants y
 containsConstants (Exp x y)  = containsConstants x || containsConstants y
