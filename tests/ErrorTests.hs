@@ -11,9 +11,9 @@ import Data.Proxy
 import GHC.TypeLits
 import GHC.TypeLits.Extra
 
-import GHC.IO.Encoding.CodePage (localeEncoding)
-import GHC.IO.Encoding          (textEncodingName, utf8)
-import Language.Haskell.TH      (litE, stringL)
+import GHC.IO.Encoding            (getLocaleEncoding, textEncodingName, utf8)
+import Language.Haskell.TH        (litE, stringL)
+import Language.Haskell.TH.Syntax (runIO)
 
 testFail1 :: Proxy (GCD 6 8) -> Proxy 4
 testFail1 = id
@@ -121,15 +121,17 @@ testFail9Errors =
   ]
 
 testFail10Errors =
-  [$(if textEncodingName localeEncoding == textEncodingName  utf8
-        then litE $ stringL "Couldn't match type ‘'False’ with ‘'True’"
-        else litE $ stringL "Couldn't match type 'False with 'True"
+  [$(do localeEncoding <- runIO (getLocaleEncoding)
+        if textEncodingName localeEncoding == textEncodingName utf8
+          then litE $ stringL "Couldn't match type ‘'False’ with ‘'True’"
+          else litE $ stringL "Couldn't match type 'False with 'True"
     )]
 
 testFail11Errors =
-  [$(if textEncodingName localeEncoding == textEncodingName  utf8
-        then litE $ stringL "Couldn't match type ‘CLog 2 4 <=? CLog 4 4’ with ‘'True’"
-        else litE $ stringL "Couldn't match type `CLog 2 4 <=? CLog 4 4' with 'True"
+  [$(do localeEncoding <- runIO (getLocaleEncoding)
+        if textEncodingName localeEncoding == textEncodingName utf8
+          then litE $ stringL "Couldn't match type ‘CLog 2 4 <=? CLog 4 4’ with ‘'True’"
+          else litE $ stringL "Couldn't match type `CLog 2 4 <=? CLog 4 4' with 'True"
     )]
 
 testFail12Errors =
@@ -168,13 +170,15 @@ testFail18Errors =
   ]
 
 testFail19Errors =
-  [$(if textEncodingName localeEncoding == textEncodingName  utf8
-        then litE $ stringL "Couldn't match type ‘FLog 3 0’ with ‘CLog 3 0’"
-        else litE $ stringL "Couldn't match type `FLog 3 0' with `CLog 3 0'"
+  [$(do localeEncoding <- runIO (getLocaleEncoding)
+        if textEncodingName localeEncoding == textEncodingName utf8
+          then litE $ stringL "Couldn't match type ‘FLog 3 0’ with ‘CLog 3 0’"
+          else litE $ stringL "Couldn't match type `FLog 3 0' with `CLog 3 0'"
     )]
 
 testFail20Errors =
-  [$(if textEncodingName localeEncoding == textEncodingName  utf8
-        then litE $ stringL "Couldn't match type ‘FLog 3 10’ with ‘CLog 3 10’"
-        else litE $ stringL "Couldn't match type `FLog 3 10' with `CLog 3 10'"
+  [$(do localeEncoding <- runIO (getLocaleEncoding)
+        if textEncodingName localeEncoding == textEncodingName utf8
+          then litE $ stringL "Couldn't match type ‘FLog 3 10’ with ‘CLog 3 10’"
+          else litE $ stringL "Couldn't match type `FLog 3 10' with `CLog 3 10'"
     )]
