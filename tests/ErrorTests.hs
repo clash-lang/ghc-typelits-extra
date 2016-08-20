@@ -1,4 +1,4 @@
-{-# LANGUAGE DataKinds, TypeOperators #-}
+{-# LANGUAGE DataKinds, TypeOperators, TemplateHaskell #-}
 
 {-# OPTIONS_GHC -fdefer-type-errors #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.Normalise #-}
@@ -10,6 +10,10 @@ module ErrorTests where
 import Data.Proxy
 import GHC.TypeLits
 import GHC.TypeLits.Extra
+
+import GHC.IO.Encoding.CodePage (localeEncoding)
+import GHC.IO.Encoding          (textEncodingName, utf8)
+import Language.Haskell.TH      (litE, stringL)
 
 testFail1 :: Proxy (GCD 6 8) -> Proxy 4
 testFail1 = id
@@ -117,10 +121,16 @@ testFail9Errors =
   ]
 
 testFail10Errors =
-  ["Couldn't match type ‘'False’ with ‘'True’"]
+  [$(if textEncodingName localeEncoding == textEncodingName  utf8
+        then litE $ stringL "Couldn't match type ‘'False’ with ‘'True’"
+        else litE $ stringL "Couldn't match type 'False with 'True"
+    )]
 
 testFail11Errors =
-  ["Couldn't match type ‘CLog 2 4 <=? CLog 4 4’ with ‘'True’"]
+  [$(if textEncodingName localeEncoding == textEncodingName  utf8
+        then litE $ stringL "Couldn't match type ‘CLog 2 4 <=? CLog 4 4’ with ‘'True’"
+        else litE $ stringL "Couldn't match type `CLog 2 4 <=? CLog 4 4' with 'True"
+    )]
 
 testFail12Errors =
   ["Expected type: Proxy (Div 4 0) -> Proxy 4"
@@ -158,7 +168,13 @@ testFail18Errors =
   ]
 
 testFail19Errors =
-  ["Couldn't match type ‘FLog 3 0’ with ‘CLog 3 0’"]
+  [$(if textEncodingName localeEncoding == textEncodingName  utf8
+        then litE $ stringL "Couldn't match type ‘FLog 3 0’ with ‘CLog 3 0’"
+        else litE $ stringL "Couldn't match type `FLog 3 0' with `CLog 3 0'"
+    )]
 
 testFail20Errors =
-  ["Couldn't match type ‘FLog 3 10’ with ‘CLog 3 10’"]
+  [$(if textEncodingName localeEncoding == textEncodingName  utf8
+        then litE $ stringL "Couldn't match type ‘FLog 3 10’ with ‘CLog 3 10’"
+        else litE $ stringL "Couldn't match type `FLog 3 10' with `CLog 3 10'"
+    )]
