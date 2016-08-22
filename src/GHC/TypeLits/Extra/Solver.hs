@@ -49,10 +49,6 @@ import GHC.TypeLits.Extra.Solver.Unify
 
 -- | A solver implement as a type-checker plugin for:
 --
---     * 'Max': type-level 'max'
---
---     * 'Min': type-level 'min'
---
 --     * 'Div': type-level 'div'
 --
 --     * 'Mod': type-level 'mod'
@@ -143,9 +139,7 @@ fromNatEquality (ct, _, _) = ct
 lookupExtraDefs :: TcPluginM ExtraDefs
 lookupExtraDefs = do
     md <- lookupModule myModule myPackage
-    ExtraDefs <$> look md "Max"
-              <*> look md "Min"
-              <*> look md "Div"
+    ExtraDefs <$> look md "Div"
               <*> look md "Mod"
               <*> look md "FLog"
               <*> look md "CLog"
