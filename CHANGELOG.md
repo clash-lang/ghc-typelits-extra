@@ -1,5 +1,9 @@
 # Changelog for the [`ghc-typelits-extra`](http://hackage.haskell.org/package/ghc-typelits-extra) package
 
+# 0.2.1
+* Reduce `Max n n` to `n`
+* Reduce `Min n n` to `n`
+
 # 0.2 *August 19th 2016*
 * New type-level operations:
   * `Max`: type-level `max`
