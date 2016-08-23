@@ -119,7 +119,7 @@ genDefunSymbols [''Div]
 
 instance (KnownNat x, KnownNat y, 1 <= y) => KnownNat2 $(nameToSymbol ''Div) x y where
   type KnownNatF2 $(nameToSymbol ''Div) = DivSym0
-  natSing2 = SNatKn (div (natVal (Proxy @x)) (natVal (Proxy @y)))
+  natSing2 = SNatKn (quot (natVal (Proxy @x)) (natVal (Proxy @y)))
 
 -- | Type-level 'mod'
 --
@@ -132,7 +132,7 @@ genDefunSymbols [''Mod]
 
 instance (KnownNat x, KnownNat y, 1 <= y) => KnownNat2 $(nameToSymbol ''Mod) x y where
   type KnownNatF2 $(nameToSymbol ''Mod) = ModSym0
-  natSing2 = SNatKn (mod (natVal (Proxy @x)) (natVal (Proxy @y)))
+  natSing2 = SNatKn (rem (natVal (Proxy @x)) (natVal (Proxy @y)))
 
 -- | Type-level equivalent of <https://hackage.haskell.org/package/integer-gmp/docs/GHC-Integer-Logarithms.html#v:integerLogBase-35- integerLogBase#>
 -- .i.e. the exact integer equivalent to "@'floor' ('logBase' x y)@"
