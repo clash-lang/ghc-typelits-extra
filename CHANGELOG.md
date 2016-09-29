@@ -1,6 +1,6 @@
 # Changelog for the [`ghc-typelits-extra`](http://hackage.haskell.org/package/ghc-typelits-extra) package
 
-# 0.2.1
+# 0.2.1 *September 29th 2016*
 * Reduce `Max n n` to `n`
 * Reduce `Min n n` to `n`
 
