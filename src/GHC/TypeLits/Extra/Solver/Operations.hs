@@ -8,6 +8,10 @@ Maintainer :  Christiaan Baaij <christiaan.baaij@gmail.com>
 
 module GHC.TypeLits.Extra.Solver.Operations
   ( ExtraOp (..)
+  , ExtraDefs (..)
+  , reifyEOP
+  , mergeMax
+  , mergeMin
   , mergeDiv
   , mergeMod
   , mergeFLog
@@ -23,16 +27,20 @@ where
 import GHC.Base                     (isTrue#,(==#),(+#))
 import GHC.Integer                  (smallInteger)
 import GHC.Integer.Logarithms       (integerLogBase#)
-import GHC.TypeLits.Normalise.Unify (CType (..))
+import GHC.TypeLits.Normalise.Unify (CType (..), normaliseNat, isNatural)
 
 -- GHC API
 import Outputable (Outputable (..), (<+>), integer, text)
-import Type       (TyVar)
+import TcTypeNats (typeNatExpTyCon, typeNatSubTyCon)
+import TyCon      (TyCon)
+import Type       (Type, TyVar, mkNumLitTy, mkTyConApp, mkTyVarTy)
 
 data ExtraOp
   = I    Integer
   | V    TyVar
   | C    CType
+  | Max  ExtraOp ExtraOp
+  | Min  ExtraOp ExtraOp
   | Div  ExtraOp ExtraOp
   | Mod  ExtraOp ExtraOp
   | FLog ExtraOp ExtraOp
@@ -47,6 +55,8 @@ instance Outputable ExtraOp where
   ppr (I i)      = integer i
   ppr (V v)      = ppr v
   ppr (C c)      = ppr c
+  ppr (Max x y)  = text "Max (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
+  ppr (Min x y)  = text "Min (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
   ppr (Div x y)  = text "Div (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
   ppr (Mod x y)  = text "Mod (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
   ppr (FLog x y) = text "FLog (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
@@ -55,6 +65,63 @@ instance Outputable ExtraOp where
   ppr (GCD x y)  = text "GCD (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
   ppr (LCM x y)  = text "GCD (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
   ppr (Exp x y)  = text "Exp (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
+
+data ExtraDefs = ExtraDefs
+  { maxTyCon  :: TyCon
+  , minTyCon  :: TyCon
+  , divTyCon  :: TyCon
+  , modTyCon  :: TyCon
+  , flogTyCon :: TyCon
+  , clogTyCon :: TyCon
+  , logTyCon  :: TyCon
+  , gcdTyCon  :: TyCon
+  , lcmTyCon  :: TyCon
+  }
+
+reifyEOP :: ExtraDefs -> ExtraOp -> Type
+reifyEOP _ (I i) = mkNumLitTy i
+reifyEOP _ (V v) = mkTyVarTy v
+reifyEOP _ (C (CType c)) = c
+reifyEOP defs (Max x y)  = mkTyConApp (maxTyCon defs)  [reifyEOP defs x
+                                                       ,reifyEOP defs y]
+reifyEOP defs (Min x y)  = mkTyConApp (minTyCon defs)  [reifyEOP defs x
+                                                       ,reifyEOP defs y]
+reifyEOP defs (Div x y)  = mkTyConApp (divTyCon defs)  [reifyEOP defs x
+                                                       ,reifyEOP defs y]
+reifyEOP defs (Mod x y)  = mkTyConApp (modTyCon defs)  [reifyEOP defs x
+                                                       ,reifyEOP defs y]
+reifyEOP defs (CLog x y) = mkTyConApp (clogTyCon defs) [reifyEOP defs x
+                                                       ,reifyEOP defs y]
+reifyEOP defs (FLog x y) = mkTyConApp (flogTyCon defs) [reifyEOP defs x
+                                                       ,reifyEOP defs y]
+reifyEOP defs (Log x y)  = mkTyConApp (logTyCon defs)  [reifyEOP defs x
+                                                       ,reifyEOP defs y]
+reifyEOP defs (GCD x y)  = mkTyConApp (gcdTyCon defs)  [reifyEOP defs x
+                                                       ,reifyEOP defs y]
+reifyEOP defs (LCM x y)  = mkTyConApp (lcmTyCon defs)  [reifyEOP defs x
+                                                       ,reifyEOP defs y]
+reifyEOP defs (Exp x y)  = mkTyConApp typeNatExpTyCon  [reifyEOP defs x
+                                                       ,reifyEOP defs y]
+
+mergeMax :: ExtraDefs -> ExtraOp -> ExtraOp -> ExtraOp
+mergeMax defs x y =
+  let x' = reifyEOP defs x
+      y' = reifyEOP defs y
+      z  = normaliseNat (mkTyConApp typeNatSubTyCon [y',x'])
+  in  case isNatural z of
+        Just True  -> y
+        Just False -> x
+        _ -> Max x y
+
+mergeMin :: ExtraDefs -> ExtraOp -> ExtraOp -> ExtraOp
+mergeMin defs x y =
+  let x' = reifyEOP defs x
+      y' = reifyEOP defs y
+      z  = normaliseNat (mkTyConApp typeNatSubTyCon [y',x'])
+  in  case isNatural z of
+        Just True  -> x
+        Just False -> y
+        _ -> Max x y
 
 mergeDiv :: ExtraOp -> ExtraOp -> Maybe ExtraOp
 mergeDiv _     (I 0)      = Nothing

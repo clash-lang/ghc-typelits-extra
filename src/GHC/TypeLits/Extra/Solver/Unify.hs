@@ -23,29 +23,22 @@ import Outputable (Outputable (..), ($$), text)
 import TcPluginM  (TcPluginM, matchFam, tcPluginTrace)
 import TcRnMonad  (Ct)
 import TcTypeNats (typeNatExpTyCon)
-import Type       (TyVar, coreView, mkNumLitTy, mkTyConApp, mkTyVarTy)
-import TyCon      (TyCon)
+import Type       (TyVar, coreView)
 import TyCoRep    (Type (..), TyLit (..))
 import UniqSet    (UniqSet, emptyUniqSet, unionUniqSets, unitUniqSet)
 
 -- internal
 import GHC.TypeLits.Extra.Solver.Operations
 
-data ExtraDefs = ExtraDefs
-  { divTyCon  :: TyCon
-  , modTyCon  :: TyCon
-  , flogTyCon :: TyCon
-  , clogTyCon :: TyCon
-  , logTyCon  :: TyCon
-  , gcdTyCon  :: TyCon
-  , lcmTyCon  :: TyCon
-  }
-
 normaliseNat :: ExtraDefs -> Type -> MaybeT TcPluginM ExtraOp
 normaliseNat defs ty | Just ty1 <- coreView ty = normaliseNat defs ty1
 normaliseNat _ (TyVarTy v)          = pure (V v)
 normaliseNat _ (LitTy (NumTyLit i)) = pure (I i)
 normaliseNat defs (TyConApp tc [x,y])
+  | tc == maxTyCon defs = mergeMax defs <$> normaliseNat defs x
+                                        <*> normaliseNat defs y
+  | tc == minTyCon defs = mergeMin defs <$> normaliseNat defs x
+                                        <*> normaliseNat defs y
   | tc == divTyCon defs = do x' <- normaliseNat defs x
                              y' <- normaliseNat defs y
                              MaybeT (return (mergeDiv x' y'))
@@ -106,6 +99,8 @@ fvOP :: ExtraOp -> UniqSet TyVar
 fvOP (I _)      = emptyUniqSet
 fvOP (V v)      = unitUniqSet v
 fvOP (C _)      = emptyUniqSet
+fvOP (Max x y)  = fvOP x `unionUniqSets` fvOP y
+fvOP (Min x y)  = fvOP x `unionUniqSets` fvOP y
 fvOP (Div x y)  = fvOP x `unionUniqSets` fvOP y
 fvOP (Mod x y)  = fvOP x `unionUniqSets` fvOP y
 fvOP (FLog x y) = fvOP x `unionUniqSets` fvOP y
@@ -118,32 +113,12 @@ fvOP (Exp x y)  = fvOP x `unionUniqSets` fvOP y
 eqFV :: ExtraOp -> ExtraOp -> Bool
 eqFV = (==) `on` fvOP
 
-reifyEOP :: ExtraDefs -> ExtraOp -> Type
-reifyEOP _ (I i) = mkNumLitTy i
-reifyEOP _ (V v) = mkTyVarTy v
-reifyEOP _ (C (CType c)) = c
-reifyEOP defs (Div x y)  = mkTyConApp (divTyCon defs)  [reifyEOP defs x
-                                                       ,reifyEOP defs y]
-reifyEOP defs (Mod x y)  = mkTyConApp (modTyCon defs)  [reifyEOP defs x
-                                                       ,reifyEOP defs y]
-reifyEOP defs (CLog x y) = mkTyConApp (clogTyCon defs) [reifyEOP defs x
-                                                       ,reifyEOP defs y]
-reifyEOP defs (FLog x y) = mkTyConApp (flogTyCon defs) [reifyEOP defs x
-                                                       ,reifyEOP defs y]
-reifyEOP defs (Log x y)  = mkTyConApp (logTyCon defs)  [reifyEOP defs x
-                                                       ,reifyEOP defs y]
-reifyEOP defs (GCD x y)  = mkTyConApp (gcdTyCon defs)  [reifyEOP defs x
-                                                       ,reifyEOP defs y]
-reifyEOP defs (LCM x y)  = mkTyConApp (lcmTyCon defs)  [reifyEOP defs x
-                                                       ,reifyEOP defs y]
-reifyEOP defs (Exp x y)  = mkTyConApp typeNatExpTyCon  [reifyEOP defs x
-                                                       ,reifyEOP defs y]
-
-
 containsConstants :: ExtraOp -> Bool
 containsConstants (I _) = False
 containsConstants (V _) = False
 containsConstants (C _) = True
+containsConstants (Max x y)  = containsConstants x || containsConstants y
+containsConstants (Min x y)  = containsConstants x || containsConstants y
 containsConstants (Div x y)  = containsConstants x || containsConstants y
 containsConstants (Mod x y)  = containsConstants x || containsConstants y
 containsConstants (FLog x y) = containsConstants x || containsConstants y

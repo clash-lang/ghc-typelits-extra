@@ -75,6 +75,12 @@ testFail19 = natVal (Proxy :: Proxy (Log 3 0))
 testFail20 :: Integer
 testFail20 = natVal (Proxy :: Proxy (Log 3 10))
 
+testFail21 :: Proxy a -> Proxy b -> Proxy (Min a (a*b)) -> Proxy a
+testFail21 _ _ = id
+
+testFail22 :: Proxy a -> Proxy b -> Proxy (Max a (a*b)) -> Proxy (a*b)
+testFail22 _ _ = id
+
 testFail1Errors =
   ["Expected type: Proxy (GCD 6 8) -> Proxy 4"
   ,"Actual type: Proxy 4 -> Proxy 4"
@@ -182,3 +188,12 @@ testFail20Errors =
           then litE $ stringL "Couldn't match type ‘FLog 3 10’ with ‘CLog 3 10’"
           else litE $ stringL "Couldn't match type `FLog 3 10' with `CLog 3 10'"
     )]
+
+testFail21Errors =
+  ["Expected type: Proxy (Min a (a * b)) -> Proxy a"
+  ,"Actual type: Proxy a -> Proxy a"
+  ]
+
+testFail22Errors =
+  ["Expected type: Proxy (Max a (a * b)) -> Proxy (a * b)"
+  ,"Actual type: Proxy (a * b) -> Proxy (a * b)"]

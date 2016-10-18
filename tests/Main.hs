@@ -106,6 +106,24 @@ test29 = id
 test30 :: Proxy n -> Proxy (1 + Max n n) -> Proxy (Min n n + 1)
 test30 _ = id
 
+test31 :: Proxy (Min n (n + 1)) -> Proxy n
+test31 = id
+
+test32 :: Proxy (Min (n + 1) n) -> Proxy n
+test32 = id
+
+test33 :: Proxy (Max n (n + 1)) -> Proxy (n+1)
+test33 = id
+
+test34 :: Proxy (Max (n + 1) n) -> Proxy (n+1)
+test34 = id
+
+test35 :: Proxy n -> Proxy (1 + Max n (1 + n)) -> Proxy (n + 2)
+test35 _ = id
+
+test36 :: Proxy n -> Proxy (1 + Min n (1 + n)) -> Proxy (n + 1)
+test36 _ = id
+
 main :: IO ()
 main = defaultMain tests
 
@@ -202,6 +220,24 @@ tests = testGroup "ghc-typelits-natnormalise"
     , testCase "forall x . (Min x x + 1) ~ (1 + Max x x)" $
       show (test30 Proxy Proxy) @?=
       "Proxy"
+    , testCase "forall x . Min x (x+1) ~ x" $
+      show (test31 Proxy) @?=
+      "Proxy"
+    , testCase "forall x . Min (x+1) x ~ x" $
+      show (test32 Proxy) @?=
+      "Proxy"
+    , testCase "forall x . Max x (x+1) ~ (x+1)" $
+      show (test33 Proxy) @?=
+      "Proxy"
+    , testCase "forall x . Max (x+1) x ~ (x+1)" $
+      show (test34 Proxy) @?=
+      "Proxy"
+    , testCase "forall x . (1 + Max n (1+n)) ~ (2 + x)" $
+      show (test35 Proxy Proxy) @?=
+      "Proxy"
+    , testCase "forall x . (1 + Min n (1+n)) ~ (1 + x)" $
+      show (test36 Proxy Proxy) @?=
+      "Proxy"
     ]
   , testGroup "errors"
     [ testCase "GCD 6 8 /~ 4" $ testFail1 `throws` testFail1Errors
@@ -224,6 +260,8 @@ tests = testGroup "ghc-typelits-natnormalise"
     , testCase "GCD 6 8 + x /~ x + GCD 9 6" $ testFail18 `throws` testFail18Errors
     , testCase "No instance (KnownNat (Log 3 0))" $ testFail19 `throws` testFail19Errors
     , testCase "No instance (KnownNat (Log 3 10))" $ testFail20 `throws` testFail20Errors
+    , testCase "Min a (a*b) /~ a" $ testFail21 `throws` testFail21Errors
+    , testCase "Max a (a*b) /~ (a*b)" $ testFail22 `throws` testFail22Errors
     ]
   ]
 
