@@ -3,6 +3,7 @@
 # 0.2.2
 * Reduce `Min n (n+1)` to `n`
 * Reduce `Max n (n+1)` to `n+1`
+* Reduce cases like `1 <= Div 18 6` to `True`
 
 # 0.2.1 *September 29th 2016*
 * Reduce `Max n n` to `n`

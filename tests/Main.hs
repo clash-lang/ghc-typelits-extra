@@ -1,4 +1,4 @@
-{-# LANGUAGE DataKinds, TypeOperators #-}
+{-# LANGUAGE DataKinds, TypeOperators, TypeApplications, TypeFamilies #-}
 
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.Normalise #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
@@ -124,6 +124,9 @@ test35 _ = id
 test36 :: Proxy n -> Proxy (1 + Min n (1 + n)) -> Proxy (n + 1)
 test36 _ = id
 
+test37 :: (1 <= Div l r) => Proxy l -> Proxy r -> ()
+test37 _ _ = ()
+
 main :: IO ()
 main = defaultMain tests
 
@@ -238,6 +241,9 @@ tests = testGroup "ghc-typelits-natnormalise"
     , testCase "forall x . (1 + Min n (1+n)) ~ (1 + x)" $
       show (test36 Proxy Proxy) @?=
       "Proxy"
+    , testCase "1 <= Div 18 3" $
+      show (test37 (Proxy @18) (Proxy @3)) @?=
+      "()"
     ]
   , testGroup "errors"
     [ testCase "GCD 6 8 /~ 4" $ testFail1 `throws` testFail1Errors
@@ -262,6 +268,7 @@ tests = testGroup "ghc-typelits-natnormalise"
     , testCase "No instance (KnownNat (Log 3 10))" $ testFail20 `throws` testFail20Errors
     , testCase "Min a (a*b) /~ a" $ testFail21 `throws` testFail21Errors
     , testCase "Max a (a*b) /~ (a*b)" $ testFail22 `throws` testFail22Errors
+    , testCase "(1 <=? Div 18 6) ~ False" $ testFail23 `throws` testFail23Errors
     ]
   ]
 

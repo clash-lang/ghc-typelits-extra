@@ -41,7 +41,9 @@ import TcRnTypes  (Ct, TcPlugin(..), TcPluginResult (..), ctEvidence, ctEvPred,
 import TcType      (typeKind)
 import Type       (EqRel (NomEq), Kind, PredTree (EqPred), classifyPredType,
                    eqType)
-import TysWiredIn (typeNatKind)
+import TyCoRep    (Type (..))
+import TysWiredIn (typeNatKind, promotedTrueDataCon, promotedFalseDataCon)
+import TcTypeNats (typeNatLeqTyCon)
 
 -- internal
 import GHC.TypeLits.Extra.Solver.Operations
@@ -99,42 +101,60 @@ decideEqualSOP defs givens  _deriveds wanteds = do
         Simplified evs -> return (TcPluginOk (filter (isWanted . ctEvidence . snd) evs) [])
         Impossible eq  -> return (TcPluginContradiction [fromNatEquality eq])
 
-type NatEquality = (Ct,ExtraOp,ExtraOp)
+type NatEquality   = (Ct,ExtraOp,ExtraOp)
+type NatInEquality = (Ct,ExtraOp,ExtraOp,Bool)
 
 data SimplifyResult
   = Simplified [(EvTerm,Ct)]
-  | Impossible NatEquality
+  | Impossible (Either NatEquality NatInEquality)
 
 instance Outputable SimplifyResult where
   ppr (Simplified evs) = text "Simplified" $$ ppr evs
   ppr (Impossible eq)  = text "Impossible" <+> ppr eq
 
-simplifyExtra :: [NatEquality] -> TcPluginM SimplifyResult
+simplifyExtra :: [Either NatEquality NatInEquality] -> TcPluginM SimplifyResult
 simplifyExtra eqs = tcPluginTrace "simplifyExtra" (ppr eqs) >> simples [] eqs
   where
-    simples :: [Maybe (EvTerm, Ct)] -> [NatEquality] -> TcPluginM SimplifyResult
+    simples :: [Maybe (EvTerm, Ct)] -> [Either NatEquality NatInEquality] -> TcPluginM SimplifyResult
     simples evs [] = return (Simplified (catMaybes evs))
-    simples evs (eq@((ct,u,v)):eqs') = do
+    simples evs (eq@(Left (ct,u,v)):eqs') = do
       ur <- unifyExtra ct u v
       tcPluginTrace "unifyExtra result" (ppr ur)
       case ur of
         Win  -> simples (((,) <$> evMagic ct <*> pure ct):evs) eqs'
         Lose -> return  (Impossible eq)
         Draw -> simples evs eqs'
+    simples evs (eq@(Right (ct,u,v,b)):eqs') = do
+      tcPluginTrace "unifyExtra leq result" (ppr (u,v,b))
+      case (u,v) of
+        (I i,I j)
+          | (i <= j) == b -> simples (((,) <$> evMagic ct <*> pure ct):evs) eqs'
+          | otherwise     -> return  (Impossible eq)
+        _ -> simples evs eqs'
+
 
 -- Extract the Nat equality constraints
-toNatEquality :: ExtraDefs -> Ct -> MaybeT TcPluginM NatEquality
+toNatEquality :: ExtraDefs -> Ct -> MaybeT TcPluginM (Either NatEquality NatInEquality)
 toNatEquality defs ct = case classifyPredType $ ctEvPred $ ctEvidence ct of
     EqPred NomEq t1 t2
       | isNatKind (typeKind t1) || isNatKind (typeKind t2)
-      -> (ct,,) <$> normaliseNat defs t1 <*> normaliseNat defs t2
+      -> Left <$> ((ct,,) <$> normaliseNat defs t1 <*> normaliseNat defs t2)
+      | TyConApp tc [x,y] <- t1
+      , tc == typeNatLeqTyCon
+      , TyConApp tc' [] <- t2
+      -> if tc' == promotedTrueDataCon
+            then Right <$> ((ct,,,True) <$> normaliseNat defs x <*> normaliseNat defs y)
+            else if tc' == promotedFalseDataCon
+                 then Right <$> ((ct,,,False) <$> normaliseNat defs x <*> normaliseNat defs y)
+                 else fail "Nothing"
     _ -> fail "Nothing"
   where
     isNatKind :: Kind -> Bool
     isNatKind = (`eqType` typeNatKind)
 
-fromNatEquality :: NatEquality -> Ct
-fromNatEquality (ct, _, _) = ct
+fromNatEquality :: Either NatEquality NatInEquality -> Ct
+fromNatEquality (Left (ct, _, _))  = ct
+fromNatEquality (Right (ct,_,_,_)) = ct
 
 lookupExtraDefs :: TcPluginM ExtraDefs
 lookupExtraDefs = do

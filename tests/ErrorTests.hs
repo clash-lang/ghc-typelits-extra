@@ -1,4 +1,4 @@
-{-# LANGUAGE DataKinds, TypeOperators, TemplateHaskell #-}
+{-# LANGUAGE DataKinds, TypeOperators, TypeApplications, TypeFamilies, TemplateHaskell #-}
 
 {-# OPTIONS_GHC -fdefer-type-errors #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.Normalise #-}
@@ -80,6 +80,13 @@ testFail21 _ _ = id
 
 testFail22 :: Proxy a -> Proxy b -> Proxy (Max a (a*b)) -> Proxy (a*b)
 testFail22 _ _ = id
+
+testFail23' :: ((1 <=? Div l r) ~ False) => Proxy l -> Proxy r -> ()
+testFail23' _ _ = ()
+
+testFail23 :: ()
+testFail23 = testFail23' (Proxy @18) (Proxy @3)
+
 
 testFail1Errors =
   ["Expected type: Proxy (GCD 6 8) -> Proxy 4"
@@ -197,3 +204,6 @@ testFail21Errors =
 testFail22Errors =
   ["Expected type: Proxy (Max a (a * b)) -> Proxy (a * b)"
   ,"Actual type: Proxy (a * b) -> Proxy (a * b)"]
+
+testFail23Errors =
+  ["Couldn't match type ‘1 <=? Div 18 3’ with ‘'False’"]
