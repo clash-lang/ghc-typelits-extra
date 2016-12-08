@@ -62,6 +62,8 @@ module GHC.TypeLits.Extra
     -- ** Integral
   , Div
   , Mod
+    -- *** Variants
+  , DivRU
     -- ** Logarithm
   , FLog
   , CLog
@@ -79,7 +81,8 @@ import Data.Type.Bool         (If)
 import GHC.Base               (isTrue#,(==#),(+#))
 import GHC.Integer            (smallInteger)
 import GHC.Integer.Logarithms (integerLogBase#)
-import GHC.TypeLits           (KnownNat, Nat, type (<=), type (<=?), natVal)
+import GHC.TypeLits
+  (KnownNat, Nat, type (+), type (-), type (<=), type (<=?), natVal)
 import GHC.TypeLits.KnownNat  (KnownNat2 (..), SNatKn (..), nameToSymbol)
 
 -- | Type-level 'max'
@@ -114,6 +117,9 @@ instance (KnownNat x, KnownNat y) => KnownNat2 $(nameToSymbol ''Min) x y where
 -- "GHC.TypeLits.Extra.Solver".
 type family Div (x :: Nat) (y :: Nat) :: Nat where
   Div x 1 = x
+
+-- | A variant of 'Div' that rounds up instead of down
+type DivRU n d = Div (n + (d - 1)) d
 
 genDefunSymbols [''Div]
 
