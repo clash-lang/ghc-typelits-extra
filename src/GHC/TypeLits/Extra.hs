@@ -62,6 +62,7 @@ module GHC.TypeLits.Extra
     -- ** Integral
   , Div
   , Mod
+  , DivMod
     -- *** Variants
   , DivRU
     -- ** Logarithm
@@ -139,6 +140,9 @@ genDefunSymbols [''Mod]
 instance (KnownNat x, KnownNat y, 1 <= y) => KnownNat2 $(nameToSymbol ''Mod) x y where
   type KnownNatF2 $(nameToSymbol ''Mod) = ModSym0
   natSing2 = SNatKn (rem (natVal (Proxy @x)) (natVal (Proxy @y)))
+
+-- | Type-level `divMod`
+type DivMod n d = '(Div n d, Mod n d)
 
 -- | Type-level equivalent of <https://hackage.haskell.org/package/integer-gmp/docs/GHC-Integer-Logarithms.html#v:integerLogBase-35- integerLogBase#>
 -- .i.e. the exact integer equivalent to "@'floor' ('logBase' x y)@"

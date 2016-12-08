@@ -5,6 +5,7 @@
 * Reduce `Max n (n+1)` to `n+1`
 * Reduce cases like `1 <=? Div 18 6` to `True`
 * Add a type-level division that rounds up: `type DivRU n d = Div (n + (d - 1)) d`
+* Add a type-level `divMod` : `DivMod :: Nat -> Nat -> '(Nat, Nat)`
 
 # 0.2.1 *September 29th 2016*
 * Reduce `Max n n` to `n`
