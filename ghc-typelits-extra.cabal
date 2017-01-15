@@ -40,7 +40,7 @@ license:             BSD2
 license-file:        LICENSE
 author:              Christiaan Baaij
 maintainer:          christiaan.baaij@gmail.com
-copyright:           Copyright © 2015-2016 University of Twente
+copyright:           Copyright © 2015-2016, University of Twente, 2017, QBayLogic
 category:            Type System
 build-type:          Simple
 extra-source-files:  README.md
