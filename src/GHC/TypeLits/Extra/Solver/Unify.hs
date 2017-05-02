@@ -4,6 +4,8 @@ License    :  BSD2 (see the file LICENSE)
 Maintainer :  Christiaan Baaij <christiaan.baaij@gmail.com>
 -}
 
+{-# LANGUAGE CPP #-}
+
 module GHC.TypeLits.Extra.Solver.Unify
   ( ExtraDefs (..)
   , UnifyResult (..)
@@ -26,6 +28,9 @@ import TcTypeNats (typeNatExpTyCon)
 import Type       (TyVar, coreView)
 import TyCoRep    (Type (..), TyLit (..))
 import UniqSet    (UniqSet, emptyUniqSet, unionUniqSets, unitUniqSet)
+#if MIN_VERSION_ghc(8,2,0)
+import UniqSet    (nonDetEltsUniqSet)
+#endif
 
 -- internal
 import GHC.TypeLits.Extra.Solver.Operations
@@ -111,7 +116,11 @@ fvOP (LCM x y)  = fvOP x `unionUniqSets` fvOP y
 fvOP (Exp x y)  = fvOP x `unionUniqSets` fvOP y
 
 eqFV :: ExtraOp -> ExtraOp -> Bool
+#if MIN_VERSION_ghc(8,2,0)
+eqFV = (==) `on` (nonDetEltsUniqSet . fvOP)
+#else
 eqFV = (==) `on` fvOP
+#endif
 
 containsConstants :: ExtraOp -> Bool
 containsConstants (I _) = False

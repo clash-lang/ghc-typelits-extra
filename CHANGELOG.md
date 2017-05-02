@@ -1,5 +1,8 @@
 # Changelog for the [`ghc-typelits-extra`](http://hackage.haskell.org/package/ghc-typelits-extra) package
 
+# 0.2.3
+* Support GHC 8.2
+
 # 0.2.2 *January 15th 2017*
 * Reduce `Min n (n+1)` to `n`
 * Reduce `Max n (n+1)` to `n+1`

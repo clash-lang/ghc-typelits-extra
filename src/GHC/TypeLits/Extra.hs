@@ -37,6 +37,7 @@ add the
 pragma to the header of your file.
 -}
 
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE GADTs                 #-}
@@ -79,12 +80,28 @@ where
 import Data.Proxy             (Proxy (..))
 import Data.Singletons.TH     (genDefunSymbols)
 import Data.Type.Bool         (If)
-import GHC.Base               (isTrue#,(==#),(+#))
-import GHC.Integer            (smallInteger)
+import GHC.Base               (Int#,isTrue#,(==#),(+#))
 import GHC.Integer.Logarithms (integerLogBase#)
+#if MIN_VERSION_ghc(8,2,0)
+import qualified GHC.TypeNats as N
+import GHC.Natural
+import GHC.Prim               (int2Word#)
 import GHC.TypeLits
+#else
+import GHC.Integer            (smallInteger)
+import GHC.TypeLits           as N
+#endif
   (KnownNat, Nat, type (+), type (-), type (<=), type (<=?), natVal)
 import GHC.TypeLits.KnownNat  (KnownNat2 (..), SNatKn (..), nameToSymbol)
+
+#if MIN_VERSION_ghc(8,2,0)
+intToNumber :: Int# -> Natural
+intToNumber x = NatS# (int2Word# x)
+#else
+intToNumber :: Int# -> Integer
+intToNumber x = smallInteger x
+#endif
+{-# INLINE intToNumber #-}
 
 -- | Type-level 'max'
 type family Max (x :: Nat) (y :: Nat) :: Nat where
@@ -97,7 +114,7 @@ genDefunSymbols [''Max]
 
 instance (KnownNat x, KnownNat y) => KnownNat2 $(nameToSymbol ''Max) x y where
   type KnownNatF2 $(nameToSymbol ''Max) = MaxSym0
-  natSing2 = SNatKn (max (natVal (Proxy @x)) (natVal (Proxy @y)))
+  natSing2 = SNatKn (max (N.natVal (Proxy @x)) (N.natVal (Proxy @y)))
 
 -- | Type-level 'min'
 type family Min (x :: Nat) (y :: Nat) :: Nat where
@@ -110,7 +127,7 @@ genDefunSymbols [''Min]
 
 instance (KnownNat x, KnownNat y) => KnownNat2 $(nameToSymbol ''Min) x y where
   type KnownNatF2 $(nameToSymbol ''Min) = MinSym0
-  natSing2 = SNatKn (min (natVal (Proxy @x)) (natVal (Proxy @y)))
+  natSing2 = SNatKn (min (N.natVal (Proxy @x)) (N.natVal (Proxy @y)))
 
 -- | Type-level 'div'
 --
@@ -126,7 +143,7 @@ genDefunSymbols [''Div]
 
 instance (KnownNat x, KnownNat y, 1 <= y) => KnownNat2 $(nameToSymbol ''Div) x y where
   type KnownNatF2 $(nameToSymbol ''Div) = DivSym0
-  natSing2 = SNatKn (quot (natVal (Proxy @x)) (natVal (Proxy @y)))
+  natSing2 = SNatKn (quot (N.natVal (Proxy @x)) (N.natVal (Proxy @y)))
 
 -- | Type-level 'mod'
 --
@@ -139,7 +156,7 @@ genDefunSymbols [''Mod]
 
 instance (KnownNat x, KnownNat y, 1 <= y) => KnownNat2 $(nameToSymbol ''Mod) x y where
   type KnownNatF2 $(nameToSymbol ''Mod) = ModSym0
-  natSing2 = SNatKn (rem (natVal (Proxy @x)) (natVal (Proxy @y)))
+  natSing2 = SNatKn (rem (N.natVal (Proxy @x)) (N.natVal (Proxy @y)))
 
 -- | Type-level `divMod`
 type DivMod n d = '(Div n d, Mod n d)
@@ -156,7 +173,11 @@ genDefunSymbols [''FLog]
 
 instance (KnownNat x, KnownNat y, 2 <= x, 1 <= y) => KnownNat2 $(nameToSymbol ''FLog) x y where
   type KnownNatF2 $(nameToSymbol ''FLog) = FLogSym0
-  natSing2 = SNatKn (smallInteger (integerLogBase# (natVal (Proxy @x)) (natVal (Proxy @y))))
+#if MIN_VERSION_ghc (8,2,0)
+  natSing2 = SNatKn (intToNumber (integerLogBase# (natVal (Proxy @x)) (natVal (Proxy @y))))
+#else
+  natSing2 = SNatKn (intToNumber (integerLogBase# (natVal (Proxy @x)) (natVal (Proxy @y))))
+#endif
 
 -- | Type-level equivalent of /the ceiling of/ <https://hackage.haskell.org/package/integer-gmp/docs/GHC-Integer-Logarithms.html#v:integerLogBase-35- integerLogBase#>
 -- .i.e. the exact integer equivalent to "@'ceiling' ('logBase' x y)@"
@@ -176,8 +197,8 @@ instance (KnownNat x, KnownNat y, 2 <= x, 1 <= y) => KnownNat2 $(nameToSymbol ''
                  z2 = integerLogBase# x (y-1)
              in  case y of
                     1 -> SNatKn 0
-                    _ | isTrue# (z1 ==# z2) -> SNatKn (smallInteger (z1 +# 1#))
-                      | otherwise           -> SNatKn (smallInteger z1)
+                    _ | isTrue# (z1 ==# z2) -> SNatKn (intToNumber (z1 +# 1#))
+                      | otherwise           -> SNatKn (intToNumber z1)
 
 -- | Type-level equivalent of <https://hackage.haskell.org/package/integer-gmp/docs/GHC-Integer-Logarithms.html#v:integerLogBase-35- integerLogBase#>
 -- where the operation only reduces when:
@@ -199,7 +220,7 @@ genDefunSymbols [''Log]
 
 instance (KnownNat x, KnownNat y, FLog x y ~ CLog x y) => KnownNat2 $(nameToSymbol ''Log) x y where
   type KnownNatF2 $(nameToSymbol ''Log) = LogSym0
-  natSing2 = SNatKn (smallInteger (integerLogBase# (natVal (Proxy @x)) (natVal (Proxy @y))))
+  natSing2 = SNatKn (intToNumber (integerLogBase# (natVal (Proxy @x)) (natVal (Proxy @y))))
 
 -- | Type-level greatest common denominator (GCD).
 --
@@ -212,7 +233,7 @@ genDefunSymbols [''GCD]
 
 instance (KnownNat x, KnownNat y) => KnownNat2 $(nameToSymbol ''GCD) x y where
   type KnownNatF2 $(nameToSymbol ''GCD) = GCDSym0
-  natSing2 = SNatKn (gcd (natVal (Proxy @x)) (natVal (Proxy @y)))
+  natSing2 = SNatKn (gcd (N.natVal (Proxy @x)) (N.natVal (Proxy @y)))
 
 -- | Type-level least common multiple (LCM).
 --
@@ -225,4 +246,4 @@ genDefunSymbols [''LCM]
 
 instance (KnownNat x, KnownNat y) => KnownNat2 $(nameToSymbol ''LCM) x y where
   type KnownNatF2 $(nameToSymbol ''LCM) = LCMSym0
-  natSing2 = SNatKn (lcm (natVal (Proxy @x)) (natVal (Proxy @y)))
+  natSing2 = SNatKn (lcm (N.natVal (Proxy @x)) (N.natVal (Proxy @y)))
