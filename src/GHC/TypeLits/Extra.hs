@@ -223,7 +223,12 @@ instance (KnownNat x, KnownNat y, FLog x y ~ CLog x y) => KnownNat2 $(nameToSymb
 -- Note that additional equations are provided by the type-checker plugin solver
 -- "GHC.TypeLits.Extra.Solver".
 type family GCD (x :: Nat) (y :: Nat) :: Nat where
-  GCD 0 x = x -- Additional equations are provided by the custom solver
+  GCD 0 x = x
+  GCD x 0 = x
+  GCD 1 x = 1
+  GCD x 1 = 1
+  GCD x x = x
+  -- Additional equations are provided by the custom solver
 
 genDefunSymbols [''GCD]
 
@@ -236,7 +241,12 @@ instance (KnownNat x, KnownNat y) => KnownNat2 $(nameToSymbol ''GCD) x y where
 -- Note that additional equations are provided by the type-checker plugin solver
 -- "GHC.TypeLits.Extra.Solver".
 type family LCM (x :: Nat) (y :: Nat) :: Nat where
-  LCM 0 x = 0 -- Additional equations are provided by the custom solver
+  LCM 0 x = 0
+  LCM x 0 = 0
+  LCM 1 x = x
+  LCM x 1 = x
+  LCM x x = x
+  -- Additional equations are provided by the custom solver
 
 genDefunSymbols [''LCM]
 
