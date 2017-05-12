@@ -87,15 +87,29 @@ instance Outputable UnifyResult where
 unifyExtra :: Ct -> ExtraOp -> ExtraOp -> TcPluginM UnifyResult
 unifyExtra ct u v = do
   tcPluginTrace "unifyExtra" (ppr ct $$ ppr u $$ ppr v)
-  return (unifyExtra' ct u v)
+  return (unifyExtra' u v)
 
-unifyExtra' :: Ct -> ExtraOp -> ExtraOp -> UnifyResult
-unifyExtra' _ u v
-  | eqFV u v  = if u == v then Win
-                          else if containsConstants u || containsConstants v
-                                  then Draw
-                                  else Lose
-  | otherwise = Draw
+unifyExtra' :: ExtraOp -> ExtraOp -> UnifyResult
+unifyExtra' u v
+  | eqFV u v
+  = go u v
+  | otherwise
+  = Draw
+  where
+    go a b | a == b = Win
+    -- The following operations commute
+    go (Max a b) (Max x y) = commuteResult (go a y) (go b x)
+    go (Min a b) (Min x y) = commuteResult (go a y) (go b x)
+    go (GCD a b) (GCD x y) = commuteResult (go a y) (go b x)
+    go (LCM a b) (LCM x y) = commuteResult (go a y) (go b x)
+    -- If there are operations contained in the type which this solver does
+    -- not understand, then the result is a Draw
+    go a b = if containsConstants a || containsConstants b then Draw else Lose
+
+    commuteResult Win  Win  = Win
+    commuteResult Lose _    = Lose
+    commuteResult _    Lose = Lose
+    commuteResult _    _    = Draw
 
 fvOP :: ExtraOp -> UniqSet TyVar
 fvOP (I _)      = emptyUniqSet

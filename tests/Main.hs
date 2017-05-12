@@ -133,6 +133,18 @@ test38 = id
 test39 :: Proxy (Max (0-1) 0) -> Proxy 0
 test39 = id
 
+test40 :: Proxy x -> Proxy y -> Proxy (Max x y) -> Proxy (Max y x)
+test40 _ _ = id
+
+test41 :: Proxy x -> Proxy y -> Proxy (Min x y) -> Proxy (Min y x)
+test41 _ _ = id
+
+test42 :: Proxy x -> Proxy y -> Proxy (GCD x y) -> Proxy (GCD y x)
+test42 _ _ = id
+
+test43 :: Proxy x -> Proxy y -> Proxy (LCM x y) -> Proxy (LCM y x)
+test43 _ _ = id
+
 main :: IO ()
 main = defaultMain tests
 
@@ -255,6 +267,18 @@ tests = testGroup "ghc-typelits-natnormalise"
       "Proxy"
     , testCase "Max (0-1) 0 ~ 0" $
       show (test39 Proxy) @?=
+      "Proxy"
+    , testCase "forall x y . Max x y ~ Max y x" $
+      show (test40 Proxy Proxy Proxy) @?=
+      "Proxy"
+    , testCase "forall x y . Min x y ~ Min y x" $
+      show (test41 Proxy Proxy Proxy) @?=
+      "Proxy"
+    , testCase "forall x y . GCD x y ~ GCD y x" $
+      show (test42 Proxy Proxy Proxy) @?=
+      "Proxy"
+    , testCase "forall x y . LCM x y ~ LCM y x" $
+      show (test43 Proxy Proxy Proxy) @?=
       "Proxy"
     ]
   , testGroup "errors"
