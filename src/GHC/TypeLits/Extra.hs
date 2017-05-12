@@ -105,8 +105,6 @@ intToNumber x = smallInteger x
 
 -- | Type-level 'max'
 type family Max (x :: Nat) (y :: Nat) :: Nat where
-  Max 0 y = y
-  Max x 0 = x
   Max n n = n
   Max x y = If (x <=? y) y x
 
@@ -118,8 +116,6 @@ instance (KnownNat x, KnownNat y) => KnownNat2 $(nameToSymbol ''Max) x y where
 
 -- | Type-level 'min'
 type family Min (x :: Nat) (y :: Nat) :: Nat where
-  Min 0 y = 0
-  Min x 0 = 0
   Min n n = n
   Min x y = If (x <=? y) x y
 

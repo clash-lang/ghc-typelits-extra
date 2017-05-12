@@ -127,6 +127,12 @@ test36 _ = id
 test37 :: (1 <= Div l r) => Proxy l -> Proxy r -> ()
 test37 _ _ = ()
 
+test38 :: Proxy (Min (0-1) 0) -> Proxy (0-1)
+test38 = id
+
+test39 :: Proxy (Max (0-1) 0) -> Proxy 0
+test39 = id
+
 main :: IO ()
 main = defaultMain tests
 
@@ -244,6 +250,12 @@ tests = testGroup "ghc-typelits-natnormalise"
     , testCase "1 <= Div 18 3" $
       show (test37 (Proxy @18) (Proxy @3)) @?=
       "()"
+    , testCase "Min (0-1) 0 ~ (0-1)" $
+      show (test38 Proxy) @?=
+      "Proxy"
+    , testCase "Max (0-1) 0 ~ 0" $
+      show (test39 Proxy) @?=
+      "Proxy"
     ]
   , testGroup "errors"
     [ testCase "GCD 6 8 /~ 4" $ testFail1 `throws` testFail1Errors
