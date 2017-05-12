@@ -121,7 +121,7 @@ mergeMin defs x y =
   in  case isNatural z of
         Just True  -> x
         Just False -> y
-        _ -> Max x y
+        _ -> Min x y
 
 mergeDiv :: ExtraOp -> ExtraOp -> Maybe ExtraOp
 mergeDiv _     (I 0)      = Nothing
