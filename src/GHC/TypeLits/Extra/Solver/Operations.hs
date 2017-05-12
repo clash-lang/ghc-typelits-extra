@@ -157,7 +157,7 @@ mergeGCD x     y     = GCD x y
 
 mergeLCM :: ExtraOp -> ExtraOp -> ExtraOp
 mergeLCM (I i) (I j) = I (lcm i j)
-mergeLCM x     y     = GCD x y
+mergeLCM x     y     = LCM x y
 
 mergeExp :: ExtraOp -> ExtraOp -> ExtraOp
 mergeExp (I i) (I j)                = I (i^j)
