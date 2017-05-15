@@ -1,7 +1,19 @@
 # Changelog for the [`ghc-typelits-extra`](http://hackage.haskell.org/package/ghc-typelits-extra) package
 
-# 0.2.3
+# 0.2.3 *May 15th 2017*
 * Support GHC 8.2
+* `Max`, `Min`, `GCD`, and `LCM` now have a commutativity property [#9](https://github.com/clash-lang/ghc-typelits-extra/issues/9)
+* Reduce `GCD 0 x` to `x` [#9](https://github.com/clash-lang/ghc-typelits-extra/issues/9)
+* Reduce `GCD 1 x` to `1` [#9](https://github.com/clash-lang/ghc-typelits-extra/issues/9)
+* Reduce `GCD x x` to `x` [#9](https://github.com/clash-lang/ghc-typelits-extra/issues/9)
+* Reduce `LCM 0 x` to `0` [#9](https://github.com/clash-lang/ghc-typelits-extra/issues/9)
+* Reduce `LCM 1 x` to `x` [#9](https://github.com/clash-lang/ghc-typelits-extra/issues/9)
+* Reduce `LCM x x` to `x` [#9](https://github.com/clash-lang/ghc-typelits-extra/issues/9)
+* Reduce `Max (0-1) 0` to `0` [#10](https://github.com/clash-lang/ghc-typelits-extra/issues/10)
+* Reduce `Min (0-1) 0` to `0 - 1` [#10](https://github.com/clash-lang/ghc-typelits-extra/issues/10)
+* Fixes bugs:
+  * Solver turns LCM into GCD [#8](https://github.com/clash-lang/ghc-typelits-extra/issues/8)
+  * Solver turns Max into Min
 
 # 0.2.2 *January 15th 2017*
 * Reduce `Min n (n+1)` to `n`
