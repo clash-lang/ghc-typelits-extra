@@ -1,15 +1,12 @@
-resolver: nightly-2016-08-18
+resolver: nightly-2017-08-15
 
 packages:
-- .
-- location:
-    git: https://github.com/clash-lang/ghc-typelits-natnormalise.git
-    commit: 379a500c2ab38d95ddbfcd8603b5bce1bb60ee8a
-  extra-dep: true
-- location:
-    git: https://github.com/clash-lang/ghc-typelits-knownnat.git
-    commit: a2988624f00c3c023d37deb43bc309f6f3dfe23e
-  extra-dep: true
+- '.'
+
+extra-deps:
+- ghc-tcplugins-extra-0.2.1
+- ghc-typelits-knownnat-0.3
+- ghc-typelits-natnormalise-0.5.3
 
 flags:
   ghc-typelits-extra:
