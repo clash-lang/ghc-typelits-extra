@@ -147,6 +147,12 @@ test42 _ _ = id
 test43 :: Proxy x -> Proxy y -> Proxy (LCM x y) -> Proxy (LCM y x)
 test43 _ _ = id
 
+test44 :: Proxy x -> Proxy y -> Proxy (x <=? (Max x y)) -> Proxy True
+test44 _ _ = id
+
+test45 :: Proxy x -> Proxy y -> Proxy (y <=? (Max x y)) -> Proxy True
+test45 _ _ = id
+
 main :: IO ()
 main = defaultMain tests
 
@@ -282,6 +288,12 @@ tests = testGroup "ghc-typelits-natnormalise"
     , testCase "forall x y . LCM x y ~ LCM y x" $
       show (test43 Proxy Proxy Proxy) @?=
       "Proxy"
+    , testCase "forall x y . x <=? Max x y ~ True" $
+      show (test44 Proxy Proxy Proxy) @?=
+      "Proxy"
+    , testCase "forall x y . y <=? Max x y ~ True" $
+      show (test45 Proxy Proxy Proxy) @?=
+      "Proxy"
     ]
   , testGroup "errors"
     [ testCase "GCD 6 8 /~ 4" $ testFail1 `throws` testFail1Errors
@@ -307,6 +319,8 @@ tests = testGroup "ghc-typelits-natnormalise"
     , testCase "Min a (a*b) /~ a" $ testFail21 `throws` testFail21Errors
     , testCase "Max a (a*b) /~ (a*b)" $ testFail22 `throws` testFail22Errors
     , testCase "(1 <=? Div 18 6) ~ False" $ testFail23 `throws` testFail23Errors
+    , testCase "(z <=? Max x y) /~ True" $ testFail24 `throws` testFail24Errors
+    , testCase "(x+1 <=? Max x y) /~ True" $ testFail25 `throws` testFail25Errors
     ]
   ]
 

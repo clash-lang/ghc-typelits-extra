@@ -89,6 +89,12 @@ testFail23' _ _ = ()
 testFail23 :: ()
 testFail23 = testFail23' (Proxy @18) (Proxy @3)
 
+testFail24 :: Proxy x -> Proxy y -> Proxy z -> Proxy (z <=? Max x y) -> Proxy True
+testFail24 _ _ _ = id
+
+testFail25 :: Proxy x -> Proxy y -> Proxy (x+1 <=? Max x y) -> Proxy True
+testFail25 _ _ = id
+
 
 testFail1Errors =
   ["Expected type: Proxy (GCD 6 8) -> Proxy 4"
@@ -213,3 +219,9 @@ testFail23Errors =
 #else
   ["Couldn't match type ‘1 <=? Div 18 3’ with ‘'False’"]
 #endif
+
+testFail24Errors =
+  ["Couldn't match type ‘z <=? Max x y’ with ‘'True’"]
+
+testFail25Errors =
+  ["Couldn't match type ‘(x + 1) <=? Max x y’ with ‘'True’"]
