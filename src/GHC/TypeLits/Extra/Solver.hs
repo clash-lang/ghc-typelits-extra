@@ -25,6 +25,7 @@ where
 -- external
 import Control.Monad             ((<=<))
 import Control.Monad.Trans.Maybe (MaybeT (..))
+import Data.Either               (lefts)
 import Data.Maybe                (catMaybes)
 import GHC.TcPluginM.Extra       (evByFiat, lookupModule, lookupName,
                                   tracePlugin)
@@ -38,7 +39,7 @@ import Plugins    (Plugin (..), defaultPlugin)
 import TcEvidence (EvTerm)
 import TcPluginM  (TcPluginM, tcLookupTyCon, tcPluginTrace, zonkCt)
 import TcRnTypes  (Ct, TcPlugin(..), TcPluginResult (..), ctEvidence, ctEvPred,
-                   isWanted)
+                   isWantedCt)
 import TcType      (typeKind)
 import Type       (EqRel (NomEq), Kind, PredTree (EqPred), classifyPredType,
                    eqType)
@@ -93,7 +94,7 @@ decideEqualSOP :: ExtraDefs -> [Ct] -> [Ct] -> [Ct] -> TcPluginM TcPluginResult
 decideEqualSOP _    _givens _deriveds []      = return (TcPluginOk [] [])
 decideEqualSOP defs givens  _deriveds wanteds = do
   -- GHC 7.10.1 puts deriveds with the wanteds, so filter them out
-  let wanteds' = filter (isWanted . ctEvidence) wanteds
+  let wanteds' = filter isWantedCt wanteds
   unit_wanteds <- catMaybes <$> mapM (runMaybeT . toNatEquality defs) wanteds'
   case unit_wanteds of
     [] -> return (TcPluginOk [] [])
@@ -102,7 +103,7 @@ decideEqualSOP defs givens  _deriveds wanteds = do
       sr <- simplifyExtra (unit_givens ++ unit_wanteds)
       tcPluginTrace "normalised" (ppr sr)
       case sr of
-        Simplified evs -> return (TcPluginOk (filter (isWanted . ctEvidence . snd) evs) [])
+        Simplified evs -> return (TcPluginOk (filter (isWantedCt . snd) evs) [])
         Impossible eq  -> return (TcPluginContradiction [fromNatEquality eq])
 
 type NatEquality   = (Ct,ExtraOp,ExtraOp)
@@ -136,7 +137,28 @@ simplifyExtra eqs = tcPluginTrace "simplifyExtra" (ppr eqs) >> simples [] eqs
           | otherwise     -> return  (Impossible eq)
         (p, Max x y)
           | b && (p == x || p == y) -> simples (((,) <$> evMagic ct <*> pure ct):evs) eqs'
+
+        -- transform:  q ~ Max x y => (p <=? q ~ True)
+        -- to:         (p <=? Max x y) ~ True
+        -- and try to solve that along with the rest of the eqs'
+        (p, q@(V _))
+          | b -> case findMax q eqs of
+                   Just m  -> simples evs ((Right (ct,p,m,b)):eqs')
+                   Nothing -> simples evs eqs'
         _ -> simples evs eqs'
+
+    -- look for given constraint with the form: c ~ Max x y
+    findMax :: ExtraOp -> [Either NatEquality NatInEquality] -> Maybe ExtraOp
+    findMax c = go . lefts
+      where
+        go [] = Nothing
+        go ((ct, a,b@(Max _ _)) :_)
+          | c == a && not (isWantedCt ct)
+            = Just b
+        go ((ct, a@(Max _ _),b) :_)
+          | c == b && not (isWantedCt ct)
+            = Just a
+        go (_:rest) = go rest
 
 
 -- Extract the Nat equality constraints

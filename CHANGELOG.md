@@ -2,6 +2,7 @@
 
 # 0.2.5
 * Reduce `a <=? Max a b` to `True`
+* Reduce `n ~ (Max a b) => a <=? n` to `True`
 
 # 0.2.4 *January 4th 2018*
 * Add support for GHC-8.4.1-alpha1
