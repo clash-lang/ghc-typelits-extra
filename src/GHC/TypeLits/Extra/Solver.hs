@@ -152,6 +152,8 @@ simplifyExtra eqs = tcPluginTrace "simplifyExtra" (ppr eqs) >> simples [] eqs
         (I i,I j)
           | (i <= j) == b -> simples (((,) <$> evMagic ct <*> pure ct):evs) eqs'
           | otherwise     -> return  (Impossible eq)
+        (p, Max x y)
+          | b && (p == x || p == y) -> simples (((,) <$> evMagic ct <*> pure ct):evs) eqs'
         _ -> simples evs eqs'
 
 
