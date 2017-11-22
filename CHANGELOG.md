@@ -1,5 +1,8 @@
 # Changelog for the [`ghc-typelits-extra`](http://hackage.haskell.org/package/ghc-typelits-extra) package
 
+# 0.2.5
+* Reduce `a <=? Max a b` to `True`
+
 # 0.2.4 *January 4th 2018*
 * Add support for GHC-8.4.1-alpha1
 
