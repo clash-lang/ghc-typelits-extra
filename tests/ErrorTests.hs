@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, DataKinds, TypeOperators, TypeApplications, TypeFamilies, TemplateHaskell #-}
+{-# LANGUAGE CPP, DataKinds, TypeOperators, TypeApplications, TypeFamilies #-}
 #if __GLASGOW_HASKELL__ >= 805
 {-# LANGUAGE NoStarIsType #-}
 #endif
@@ -12,10 +12,6 @@ module ErrorTests where
 import Data.Proxy
 import GHC.TypeLits
 import GHC.TypeLits.Extra
-
-import GHC.IO.Encoding            (getLocaleEncoding, textEncodingName, utf8)
-import Language.Haskell.TH        (litE, stringL)
-import Language.Haskell.TH.Syntax (runIO)
 
 testFail1 :: Proxy (GCD 6 8) -> Proxy 4
 testFail1 = id
@@ -147,18 +143,10 @@ testFail9Errors =
   ]
 
 testFail10Errors =
-  [$(do localeEncoding <- runIO (getLocaleEncoding)
-        if textEncodingName localeEncoding == textEncodingName utf8
-          then litE $ stringL "Couldn't match type ‘'False’ with ‘'True’"
-          else litE $ stringL "Couldn't match type 'False with 'True"
-    )]
+  ["Couldn't match type ‘'False’ with ‘'True’"]
 
 testFail11Errors =
-  [$(do localeEncoding <- runIO (getLocaleEncoding)
-        if textEncodingName localeEncoding == textEncodingName utf8
-          then litE $ stringL "Couldn't match type ‘CLog 2 4 <=? CLog 4 4’ with ‘'True’"
-          else litE $ stringL "Couldn't match type `CLog 2 4 <=? CLog 4 4' with 'True"
-    )]
+  ["Couldn't match type ‘CLog 2 4 <=? CLog 4 4’ with ‘'True’"]
 
 testFail12Errors =
   ["Expected type: Proxy (Div 4 0) -> Proxy 4"
@@ -196,18 +184,10 @@ testFail18Errors =
   ]
 
 testFail19Errors =
-  [$(do localeEncoding <- runIO (getLocaleEncoding)
-        if textEncodingName localeEncoding == textEncodingName utf8
-          then litE $ stringL "Couldn't match type ‘FLog 3 0’ with ‘CLog 3 0’"
-          else litE $ stringL "Couldn't match type `FLog 3 0' with `CLog 3 0'"
-    )]
+  ["Couldn't match type ‘FLog 3 0’ with ‘CLog 3 0’"]
 
 testFail20Errors =
-  [$(do localeEncoding <- runIO (getLocaleEncoding)
-        if textEncodingName localeEncoding == textEncodingName utf8
-          then litE $ stringL "Couldn't match type ‘FLog 3 10’ with ‘CLog 3 10’"
-          else litE $ stringL "Couldn't match type `FLog 3 10' with `CLog 3 10'"
-    )]
+  ["Couldn't match type ‘FLog 3 10’ with ‘CLog 3 10’"]
 
 testFail21Errors =
   ["Expected type: Proxy (Min a (a * b)) -> Proxy a"
