@@ -92,6 +92,9 @@ import GHC.Integer            (smallInteger)
 import GHC.TypeLits           as N
 #endif
   (KnownNat, Nat, type (+), type (-), type (<=), type (<=?), natVal)
+#if MIN_VERSION_ghc(8,4,0)
+import GHC.TypeLits           (Div, Mod)
+#endif
 import GHC.TypeLits.KnownNat  (KnownNat2 (..), SNatKn (..), nameToSymbol)
 
 #if MIN_VERSION_ghc(8,2,0)
@@ -125,12 +128,14 @@ instance (KnownNat x, KnownNat y) => KnownNat2 $(nameToSymbol ''Min) x y where
   type KnownNatF2 $(nameToSymbol ''Min) = MinSym0
   natSing2 = SNatKn (min (N.natVal (Proxy @x)) (N.natVal (Proxy @y)))
 
+#if !MIN_VERSION_ghc(8,4,0)
 -- | Type-level 'div'
 --
 -- Note that additional equations are provided by the type-checker plugin solver
 -- "GHC.TypeLits.Extra.Solver".
 type family Div (x :: Nat) (y :: Nat) :: Nat where
   Div x 1 = x
+#endif
 
 -- | A variant of 'Div' that rounds up instead of down
 type DivRU n d = Div (n + (d - 1)) d
@@ -141,12 +146,14 @@ instance (KnownNat x, KnownNat y, 1 <= y) => KnownNat2 $(nameToSymbol ''Div) x y
   type KnownNatF2 $(nameToSymbol ''Div) = DivSym0
   natSing2 = SNatKn (quot (N.natVal (Proxy @x)) (N.natVal (Proxy @y)))
 
+#if !MIN_VERSION_ghc(8,4,0)
 -- | Type-level 'mod'
 --
 -- Note that additional equations are provided by the type-checker plugin solver
 -- "GHC.TypeLits.Extra.Solver".
 type family Mod (x :: Nat) (y :: Nat) :: Nat where
   Mod x 1 = 0
+#endif
 
 genDefunSymbols [''Mod]
 

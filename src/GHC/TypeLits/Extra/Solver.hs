@@ -13,6 +13,7 @@ pragma to the header of your file
 
 -}
 
+{-# LANGUAGE CPP           #-}
 {-# LANGUAGE TupleSections #-}
 
 {-# OPTIONS_HADDOCK show-extensions #-}
@@ -44,6 +45,9 @@ import Type       (EqRel (NomEq), Kind, PredTree (EqPred), classifyPredType,
 import TyCoRep    (Type (..))
 import TysWiredIn (typeNatKind, promotedTrueDataCon, promotedFalseDataCon)
 import TcTypeNats (typeNatLeqTyCon)
+#if MIN_VERSION_ghc(8,4,0)
+import TcTypeNats (typeNatTyCons)
+#endif
 
 -- internal
 import GHC.TypeLits.Extra.Solver.Operations
@@ -161,8 +165,13 @@ lookupExtraDefs = do
     md <- lookupModule myModule myPackage
     ExtraDefs <$> look md "Max"
               <*> look md "Min"
+#if MIN_VERSION_ghc(8,4,0)
+              <*> pure (typeNatTyCons !! 5)
+              <*> pure (typeNatTyCons !! 6)
+#else
               <*> look md "Div"
               <*> look md "Mod"
+#endif
               <*> look md "FLog"
               <*> look md "CLog"
               <*> look md "Log"
