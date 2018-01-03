@@ -46,6 +46,7 @@ build-type:          Simple
 extra-source-files:  README.md
                      CHANGELOG.md
 cabal-version:       >=1.10
+tested-with:         GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.1
 
 source-repository head
   type: git
@@ -63,7 +64,7 @@ library
   other-modules:       GHC.TypeLits.Extra.Solver.Unify
                        GHC.TypeLits.Extra.Solver.Operations
   build-depends:       base                      >= 4.8     && <5,
-                       ghc                       >= 7.10    && <8.4,
+                       ghc                       >= 7.10    && <8.6,
                        ghc-prim                  >= 0.5     && <1.0,
                        ghc-tcplugins-extra       >= 0.2,
                        ghc-typelits-knownnat     >= 0.2     && <0.4,

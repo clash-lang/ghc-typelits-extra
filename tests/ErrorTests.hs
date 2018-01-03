@@ -1,4 +1,4 @@
-{-# LANGUAGE DataKinds, TypeOperators, TypeApplications, TypeFamilies, TemplateHaskell #-}
+{-# LANGUAGE CPP, DataKinds, TypeOperators, TypeApplications, TypeFamilies, TemplateHaskell #-}
 
 {-# OPTIONS_GHC -fdefer-type-errors #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.Normalise #-}
@@ -206,4 +206,8 @@ testFail22Errors =
   ,"Actual type: Proxy (a * b) -> Proxy (a * b)"]
 
 testFail23Errors =
+#if __GLASGOW_HASKELL__ >= 804
+  ["Couldn't match type ‘'True’ with ‘'False’"]
+#else
   ["Couldn't match type ‘1 <=? Div 18 3’ with ‘'False’"]
+#endif
