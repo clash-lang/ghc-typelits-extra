@@ -78,7 +78,6 @@ module GHC.TypeLits.Extra
 where
 
 import Data.Proxy             (Proxy (..))
-import Data.Singletons.TH     (genDefunSymbols)
 import Data.Type.Bool         (If)
 import GHC.Base               (Int#,isTrue#,(==#),(+#))
 import GHC.Integer.Logarithms (integerLogBase#)
@@ -111,10 +110,7 @@ type family Max (x :: Nat) (y :: Nat) :: Nat where
   Max n n = n
   Max x y = If (x <=? y) y x
 
-genDefunSymbols [''Max]
-
 instance (KnownNat x, KnownNat y) => KnownNat2 $(nameToSymbol ''Max) x y where
-  type KnownNatF2 $(nameToSymbol ''Max) = MaxSym0
   natSing2 = SNatKn (max (N.natVal (Proxy @x)) (N.natVal (Proxy @y)))
 
 -- | Type-level 'min'
@@ -122,10 +118,7 @@ type family Min (x :: Nat) (y :: Nat) :: Nat where
   Min n n = n
   Min x y = If (x <=? y) x y
 
-genDefunSymbols [''Min]
-
 instance (KnownNat x, KnownNat y) => KnownNat2 $(nameToSymbol ''Min) x y where
-  type KnownNatF2 $(nameToSymbol ''Min) = MinSym0
   natSing2 = SNatKn (min (N.natVal (Proxy @x)) (N.natVal (Proxy @y)))
 
 #if !MIN_VERSION_ghc(8,4,0)
@@ -140,10 +133,7 @@ type family Div (x :: Nat) (y :: Nat) :: Nat where
 -- | A variant of 'Div' that rounds up instead of down
 type DivRU n d = Div (n + (d - 1)) d
 
-genDefunSymbols [''Div]
-
 instance (KnownNat x, KnownNat y, 1 <= y) => KnownNat2 $(nameToSymbol ''Div) x y where
-  type KnownNatF2 $(nameToSymbol ''Div) = DivSym0
   natSing2 = SNatKn (quot (N.natVal (Proxy @x)) (N.natVal (Proxy @y)))
 
 #if !MIN_VERSION_ghc(8,4,0)
@@ -155,10 +145,7 @@ type family Mod (x :: Nat) (y :: Nat) :: Nat where
   Mod x 1 = 0
 #endif
 
-genDefunSymbols [''Mod]
-
 instance (KnownNat x, KnownNat y, 1 <= y) => KnownNat2 $(nameToSymbol ''Mod) x y where
-  type KnownNatF2 $(nameToSymbol ''Mod) = ModSym0
   natSing2 = SNatKn (rem (N.natVal (Proxy @x)) (N.natVal (Proxy @y)))
 
 -- | Type-level `divMod`
@@ -172,10 +159,7 @@ type DivMod n d = '(Div n d, Mod n d)
 type family FLog (x :: Nat) (y :: Nat) :: Nat where
   FLog 2 1 = 0 -- Additional equations are provided by the custom solver
 
-genDefunSymbols [''FLog]
-
 instance (KnownNat x, KnownNat y, 2 <= x, 1 <= y) => KnownNat2 $(nameToSymbol ''FLog) x y where
-  type KnownNatF2 $(nameToSymbol ''FLog) = FLogSym0
 #if MIN_VERSION_ghc (8,2,0)
   natSing2 = SNatKn (intToNumber (integerLogBase# (natVal (Proxy @x)) (natVal (Proxy @y))))
 #else
@@ -190,10 +174,7 @@ instance (KnownNat x, KnownNat y, 2 <= x, 1 <= y) => KnownNat2 $(nameToSymbol ''
 type family CLog (x :: Nat) (y :: Nat) :: Nat where
   CLog 2 1 = 0 -- Additional equations are provided by the custom solver
 
-genDefunSymbols [''CLog]
-
 instance (KnownNat x, KnownNat y, 2 <= x, 1 <= y) => KnownNat2 $(nameToSymbol ''CLog) x y where
-  type KnownNatF2 $(nameToSymbol ''CLog) = CLogSym0
   natSing2 = let x  = natVal (Proxy @x)
                  y  = natVal (Proxy @y)
                  z1 = integerLogBase# x y
@@ -219,10 +200,7 @@ instance (KnownNat x, KnownNat y, 2 <= x, 1 <= y) => KnownNat2 $(nameToSymbol ''
 type family Log (x :: Nat) (y :: Nat) :: Nat where
   Log 2 1 = 0 -- Additional equations are provided by the custom solver
 
-genDefunSymbols [''Log]
-
 instance (KnownNat x, KnownNat y, FLog x y ~ CLog x y) => KnownNat2 $(nameToSymbol ''Log) x y where
-  type KnownNatF2 $(nameToSymbol ''Log) = LogSym0
   natSing2 = SNatKn (intToNumber (integerLogBase# (natVal (Proxy @x)) (natVal (Proxy @y))))
 
 -- | Type-level greatest common denominator (GCD).
@@ -237,10 +215,7 @@ type family GCD (x :: Nat) (y :: Nat) :: Nat where
   GCD x x = x
   -- Additional equations are provided by the custom solver
 
-genDefunSymbols [''GCD]
-
 instance (KnownNat x, KnownNat y) => KnownNat2 $(nameToSymbol ''GCD) x y where
-  type KnownNatF2 $(nameToSymbol ''GCD) = GCDSym0
   natSing2 = SNatKn (gcd (N.natVal (Proxy @x)) (N.natVal (Proxy @y)))
 
 -- | Type-level least common multiple (LCM).
@@ -255,8 +230,5 @@ type family LCM (x :: Nat) (y :: Nat) :: Nat where
   LCM x x = x
   -- Additional equations are provided by the custom solver
 
-genDefunSymbols [''LCM]
-
 instance (KnownNat x, KnownNat y) => KnownNat2 $(nameToSymbol ''LCM) x y where
-  type KnownNatF2 $(nameToSymbol ''LCM) = LCMSym0
   natSing2 = SNatKn (lcm (N.natVal (Proxy @x)) (N.natVal (Proxy @y)))
