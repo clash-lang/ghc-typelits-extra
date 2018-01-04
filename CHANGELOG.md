@@ -1,5 +1,8 @@
 # Changelog for the [`ghc-typelits-extra`](http://hackage.haskell.org/package/ghc-typelits-extra) package
 
+# 0.2.4 *January 4th 2018*
+* Add support for GHC-8.4.1-alpha1
+
 # 0.2.3 *May 15th 2017*
 * Support GHC 8.2
 * `Max`, `Min`, `GCD`, and `LCM` now have a commutativity property [#9](https://github.com/clash-lang/ghc-typelits-extra/issues/9)

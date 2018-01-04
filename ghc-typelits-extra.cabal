@@ -1,5 +1,5 @@
 name:                ghc-typelits-extra
-version:             0.2.3
+version:             0.2.4
 synopsis:            Additional type-level operations on GHC.TypeLits.Nat
 description:
   Additional type-level operations on @GHC.TypeLits.Nat@:
@@ -40,7 +40,8 @@ license:             BSD2
 license-file:        LICENSE
 author:              Christiaan Baaij
 maintainer:          christiaan.baaij@gmail.com
-copyright:           Copyright © 2015-2016, University of Twente, 2017, QBayLogic
+copyright:           Copyright © 2015-2016, University of Twente,
+                                 2017-2018, QBayLogic B.V.
 category:            Type System
 build-type:          Simple
 extra-source-files:  README.md
