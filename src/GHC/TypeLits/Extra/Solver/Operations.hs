@@ -25,6 +25,8 @@ module GHC.TypeLits.Extra.Solver.Operations
 where
 
 -- external
+import Control.Monad.Trans.Writer.Strict
+
 import GHC.Base                     (isTrue#,(==#),(+#))
 import GHC.Integer                  (smallInteger)
 import GHC.Integer.Logarithms       (integerLogBase#)
@@ -108,7 +110,7 @@ mergeMax :: ExtraDefs -> ExtraOp -> ExtraOp -> ExtraOp
 mergeMax defs x y =
   let x' = reifyEOP defs x
       y' = reifyEOP defs y
-      z  = normaliseNat (mkTyConApp typeNatSubTyCon [y',x'])
+      z  = fst (runWriter (normaliseNat (mkTyConApp typeNatSubTyCon [y',x'])))
   in  case isNatural z of
         Just True  -> y
         Just False -> x
@@ -118,7 +120,7 @@ mergeMin :: ExtraDefs -> ExtraOp -> ExtraOp -> ExtraOp
 mergeMin defs x y =
   let x' = reifyEOP defs x
       y' = reifyEOP defs y
-      z  = normaliseNat (mkTyConApp typeNatSubTyCon [y',x'])
+      z  = fst (runWriter (normaliseNat (mkTyConApp typeNatSubTyCon [y',x'])))
   in  case isNatural z of
         Just True  -> x
         Just False -> y
