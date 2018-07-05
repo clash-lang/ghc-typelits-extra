@@ -35,6 +35,9 @@ import Module     (mkModuleName)
 import OccName    (mkTcOcc)
 import Outputable (Outputable (..), (<+>), ($$), text)
 import Plugins    (Plugin (..), defaultPlugin)
+#if MIN_VERSION_ghc(8,6,0)
+import Plugins    (purePlugin)
+#endif
 import TcEvidence (EvTerm)
 import TcPluginM  (TcPluginM, tcLookupTyCon, tcPluginTrace, zonkCt)
 import TcRnTypes  (Ct, TcPlugin(..), TcPluginResult (..), ctEvidence, ctEvPred,
@@ -80,7 +83,13 @@ import GHC.TypeLits.Extra.Solver.Unify
 --
 -- To the header of your file.
 plugin :: Plugin
-plugin = defaultPlugin { tcPlugin = const $ Just normalisePlugin }
+plugin
+  = defaultPlugin
+  { tcPlugin = const $ Just normalisePlugin
+#if MIN_VERSION_ghc(8,6,0)
+  , pluginRecompile = purePlugin
+#endif
+  }
 
 normalisePlugin :: TcPlugin
 normalisePlugin = tracePlugin "ghc-typelits-extra"
