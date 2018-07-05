@@ -1,5 +1,7 @@
 {-# LANGUAGE CPP, DataKinds, TypeOperators, TypeApplications, TypeFamilies, TemplateHaskell #-}
-
+#if __GLASGOW_HASKELL__ >= 805
+{-# LANGUAGE NoStarIsType #-}
+#endif
 {-# OPTIONS_GHC -fdefer-type-errors #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.Normalise #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
