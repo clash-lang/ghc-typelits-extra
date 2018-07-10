@@ -1,5 +1,8 @@
 # Changelog for the [`ghc-typelits-extra`](http://hackage.haskell.org/package/ghc-typelits-extra) package
 
+# 0.2.6 *Julty 10th 2018*
+* Add support for GHC-8.6.1-alpha1
+
 # 0.2.5 *May 9th 2018*
 * Add support for ghc-typelits-natnormalise-0.6
 
