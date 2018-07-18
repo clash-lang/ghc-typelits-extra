@@ -135,7 +135,9 @@ simplifyExtra eqs = tcPluginTrace "simplifyExtra" (ppr eqs) >> simples [] eqs
       tcPluginTrace "unifyExtra result" (ppr ur)
       case ur of
         Win  -> simples (((,) <$> evMagic ct <*> pure ct):evs) eqs'
-        Lose -> return  (Impossible eq)
+        Lose -> if null evs && null eqs'
+                   then return  (Impossible eq)
+                   else simples evs eqs'
         Draw -> simples evs eqs'
     simples evs (eq@(Right (ct,u,v,b)):eqs') = do
       tcPluginTrace "unifyExtra leq result" (ppr (u,v,b))
