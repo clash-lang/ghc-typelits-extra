@@ -129,13 +129,13 @@ instance (KnownNat x, KnownNat y) => KnownNat2 $(nameToSymbol ''Min) x y where
 -- "GHC.TypeLits.Extra.Solver".
 type family Div (x :: Nat) (y :: Nat) :: Nat where
   Div x 1 = x
+
+instance (KnownNat x, KnownNat y, 1 <= y) => KnownNat2 $(nameToSymbol ''Div) x y where
+  natSing2 = SNatKn (quot (N.natVal (Proxy @x)) (N.natVal (Proxy @y)))
 #endif
 
 -- | A variant of 'Div' that rounds up instead of down
 type DivRU n d = Div (n + (d - 1)) d
-
-instance (KnownNat x, KnownNat y, 1 <= y) => KnownNat2 $(nameToSymbol ''Div) x y where
-  natSing2 = SNatKn (quot (N.natVal (Proxy @x)) (N.natVal (Proxy @y)))
 
 #if !MIN_VERSION_ghc(8,4,0)
 -- | Type-level 'mod'
@@ -144,10 +144,10 @@ instance (KnownNat x, KnownNat y, 1 <= y) => KnownNat2 $(nameToSymbol ''Div) x y
 -- "GHC.TypeLits.Extra.Solver".
 type family Mod (x :: Nat) (y :: Nat) :: Nat where
   Mod x 1 = 0
-#endif
 
 instance (KnownNat x, KnownNat y, 1 <= y) => KnownNat2 $(nameToSymbol ''Mod) x y where
   natSing2 = SNatKn (rem (N.natVal (Proxy @x)) (N.natVal (Proxy @y)))
+#endif
 
 -- | Type-level `divMod`
 type DivMod n d = '(Div n d, Mod n d)

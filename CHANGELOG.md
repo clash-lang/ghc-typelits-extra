@@ -1,5 +1,8 @@
 # Changelog for the [`ghc-typelits-extra`](http://hackage.haskell.org/package/ghc-typelits-extra) package
 
+# 0.3 *September 14th 2018*
+* Move `KnownNat2` instances for GHC 8.4's `Div` and `Mod` from `ghc-typelits-extra` to `ghc-typelits-knownnat`
+
 # 0.2.6 *Julty 10th 2018*
 * Add support for GHC-8.6.1-alpha1
 
