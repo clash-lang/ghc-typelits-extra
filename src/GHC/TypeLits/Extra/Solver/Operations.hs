@@ -111,7 +111,8 @@ mergeMax defs x y =
   let x' = reifyEOP defs x
       y' = reifyEOP defs y
       z  = fst (runWriter (normaliseNat (mkTyConApp typeNatSubTyCon [y',x'])))
-  in  case isNatural z of
+      z' = fst <$> runWriterT (isNatural z)
+  in  case z' of
         Just True  -> y
         Just False -> x
         _ -> Max x y
@@ -121,7 +122,8 @@ mergeMin defs x y =
   let x' = reifyEOP defs x
       y' = reifyEOP defs y
       z  = fst (runWriter (normaliseNat (mkTyConApp typeNatSubTyCon [y',x'])))
-  in  case isNatural z of
+      z' = fst <$> runWriterT (isNatural z)
+  in  case z' of
         Just True  -> x
         Just False -> y
         _ -> Min x y
