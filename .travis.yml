@@ -115,7 +115,7 @@ install:
 script:
   # test that source-distributions can be generated
   - (cd "." && cabal sdist)
-  - mv "."/dist/ghc-typelits-extra-*.tar.gz ${DISTDIR}/
+  - mv "."/dist-newstyle/sdist/ghc-typelits-extra-*.tar.gz ${DISTDIR}/
   - cd ${DISTDIR} || false
   - find . -maxdepth 1 -name '*.tar.gz' -exec tar -xvf '{}' \;
   - "printf 'packages: ghc-typelits-extra-*/*.cabal\\n' > cabal.project"
