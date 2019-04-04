@@ -346,6 +346,12 @@ throws v xs = do
   case result of
     Right _ -> assertFailure "No exception!"
     Left (TypeError msg) ->
-      if all (`isInfixOf` msg) xs
+      if all (`isInfixOf` (removeProblemChars msg)) $ map removeProblemChars xs
          then return ()
          else assertFailure msg
+
+-- The kind and amount of quotes in GHC error messages changes depending on
+-- whether or not our locale supports unicode.
+-- Remove the problematic characters to enable comparison of errors.
+removeProblemChars = filter (`notElem` problemChars)
+  where problemChars = "‘’`'"
