@@ -23,7 +23,6 @@ module GHC.TypeLits.Extra.Solver
 where
 
 -- external
-import Control.Monad             ((<=<))
 import Control.Monad.Trans.Maybe (MaybeT (..))
 import Data.Maybe                (catMaybes)
 import GHC.TcPluginM.Extra       (evByFiat, lookupModule, lookupName,
@@ -39,7 +38,7 @@ import Plugins    (Plugin (..), defaultPlugin)
 import Plugins    (purePlugin)
 #endif
 import TcEvidence (EvTerm)
-import TcPluginM  (TcPluginM, tcLookupTyCon, tcPluginTrace, zonkCt)
+import TcPluginM  (TcPluginM, tcLookupTyCon, tcPluginTrace)
 import TcRnTypes  (Ct, TcPlugin(..), TcPluginResult (..), ctEvidence, ctEvPred,
                    isWanted)
 import TcType      (typeKind)
@@ -49,7 +48,11 @@ import TyCoRep    (Type (..))
 import TysWiredIn (typeNatKind, promotedTrueDataCon, promotedFalseDataCon)
 import TcTypeNats (typeNatLeqTyCon)
 #if MIN_VERSION_ghc(8,4,0)
+import GHC.TcPluginM.Extra (flattenGivens)
 import TcTypeNats (typeNatTyCons)
+#else
+import TcPluginM  (zonkCt)
+import Control.Monad ((<=<))
 #endif
 
 -- internal
@@ -107,7 +110,11 @@ decideEqualSOP defs givens  _deriveds wanteds = do
   case unit_wanteds of
     [] -> return (TcPluginOk [] [])
     _  -> do
+#if MIN_VERSION_ghc(8,4,0)
+      unit_givens <- catMaybes <$> mapM (runMaybeT . toNatEquality defs) (givens ++ flattenGivens givens)
+#else
       unit_givens <- catMaybes <$> mapM ((runMaybeT . toNatEquality defs) <=< zonkCt) givens
+#endif
       sr <- simplifyExtra (unit_givens ++ unit_wanteds)
       tcPluginTrace "normalised" (ppr sr)
       case sr of
