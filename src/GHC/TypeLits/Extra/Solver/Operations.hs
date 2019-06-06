@@ -5,6 +5,7 @@ License    :  BSD2 (see the file LICENSE)
 Maintainer :  Christiaan Baaij <christiaan.baaij@gmail.com>
 -}
 
+{-# LANGUAGE CPP       #-}
 {-# LANGUAGE MagicHash #-}
 
 module GHC.TypeLits.Extra.Solver.Operations
@@ -26,6 +27,9 @@ where
 
 -- external
 import Control.Monad.Trans.Writer.Strict
+#if MIN_VERSION_ghc_typelits_natnormalise(0,7,0)
+import Data.Set                     as Set
+#endif
 
 import GHC.Base                     (isTrue#,(==#),(+#))
 import GHC.Integer                  (smallInteger)
@@ -111,9 +115,15 @@ mergeMax defs x y =
   let x' = reifyEOP defs x
       y' = reifyEOP defs y
       z  = fst (runWriter (normaliseNat (mkTyConApp typeNatSubTyCon [y',x'])))
+#if MIN_VERSION_ghc_typelits_natnormalise(0,7,0)
+  in  case runWriterT (isNatural z) of
+        Just (True , cs) | Set.null cs -> y
+        Just (False, cs) | Set.null cs -> x
+#else
   in  case isNatural z of
         Just True  -> y
         Just False -> x
+#endif
         _ -> Max x y
 
 mergeMin :: ExtraDefs -> ExtraOp -> ExtraOp -> ExtraOp
@@ -121,9 +131,15 @@ mergeMin defs x y =
   let x' = reifyEOP defs x
       y' = reifyEOP defs y
       z  = fst (runWriter (normaliseNat (mkTyConApp typeNatSubTyCon [y',x'])))
+#if MIN_VERSION_ghc_typelits_natnormalise(0,7,0)
+  in  case runWriterT (isNatural z) of
+        Just (True, cs) | Set.null cs -> x
+        Just (False,cs) | Set.null cs -> y
+#else
   in  case isNatural z of
         Just True  -> x
         Just False -> y
+#endif
         _ -> Min x y
 
 mergeDiv :: ExtraOp -> ExtraOp -> Maybe ExtraOp

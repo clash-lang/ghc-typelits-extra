@@ -65,11 +65,12 @@ library
   other-modules:       GHC.TypeLits.Extra.Solver.Unify
                        GHC.TypeLits.Extra.Solver.Operations
   build-depends:       base                      >= 4.8     && <5,
+                       containers                >= 0.5.7.1 && <0.7,
                        ghc                       >= 7.10    && <8.8,
                        ghc-prim                  >= 0.5     && <1.0,
                        ghc-tcplugins-extra       >= 0.2,
                        ghc-typelits-knownnat     >= 0.6     && <0.7,
-                       ghc-typelits-natnormalise >= 0.6     && <0.7,
+                       ghc-typelits-natnormalise >= 0.6     && <0.8,
                        integer-gmp               >= 1.0     && <1.1,
                        transformers              >= 0.4.2.0 && <0.6
   hs-source-dirs:      src
