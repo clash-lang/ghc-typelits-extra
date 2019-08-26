@@ -66,7 +66,7 @@ library
                        GHC.TypeLits.Extra.Solver.Operations
   build-depends:       base                      >= 4.8     && <5,
                        containers                >= 0.5.7.1 && <0.7,
-                       ghc                       >= 7.10    && <8.8,
+                       ghc                       >= 7.10    && <8.9,
                        ghc-prim                  >= 0.5     && <1.0,
                        ghc-tcplugins-extra       >= 0.2,
                        ghc-typelits-knownnat     >= 0.6     && <0.7,
