@@ -159,6 +159,30 @@ test46 _ _ = id
 test47 :: n ~ (Max x y) => Proxy x -> Proxy y -> Proxy (y <=? n) -> Proxy True
 test47 _ _ = id
 
+test48
+  :: Proxy n
+  -> Proxy (Max (1+n) 1)
+  -> Proxy (n+1)
+test48 _ = id
+
+test49
+  :: Proxy n
+  -> Proxy (Max (n+1) 1)
+  -> Proxy (1+n)
+test49 _ = id
+
+test50
+  :: Proxy n
+  -> Proxy (Max (n+2) 1)
+  -> Proxy (Max (2+n) 2)
+test50 _ = id
+
+test51
+  :: Proxy n
+  -> Proxy (Max (((2 ^ n) + 1) + ((2 ^ n) + 1)) 1)
+  -> Proxy (2+((2^n)*2))
+test51 _ = id
+
 main :: IO ()
 main = defaultMain tests
 
@@ -305,6 +329,18 @@ tests = testGroup "ghc-typelits-natnormalise"
       "Proxy"
     , testCase "forall x y n . n ~ Max x y => y <=? n ~ True" $
       show (test47 Proxy Proxy Proxy) @?=
+      "Proxy"
+    , testCase "forall n . Max (n+1) 1 ~ 1+n" $
+      show (test48 Proxy Proxy) @?=
+      "Proxy"
+    , testCase "forall n . Max (1+n) 1 ~ n+1" $
+      show (test49 Proxy Proxy) @?=
+      "Proxy"
+    , testCase "forall n . Max (n+2) 1 ~ Max (2+n) 2" $
+      show (test50 Proxy Proxy) @?=
+      "Proxy"
+    , testCase "forall n . Max (((2 ^ n) + 1) + ((2 ^ n) + 1)) 1 ~ 2 + ((2 ^ n) * 2)" $
+      show (test51 Proxy Proxy) @?=
       "Proxy"
     ]
   , testGroup "errors"

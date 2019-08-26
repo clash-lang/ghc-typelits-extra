@@ -1,8 +1,9 @@
 # Changelog for the [`ghc-typelits-extra`](http://hackage.haskell.org/package/ghc-typelits-extra) package
 
-# 0.3.1 *April 4th 2019*
+# 0.3.1 *August 26th 2019*
 * Reduce `a <=? Max a b` to `True`
 * Reduce `n ~ (Max a b) => a <=? n` to `True`
+* Prove `Max (1 + n) 1 ~ (n+1)`
 
 # 0.3 *September 14th 2018*
 * Move `KnownNat2` instances for GHC 8.4's `Div` and `Mod` from `ghc-typelits-extra` to `ghc-typelits-knownnat`

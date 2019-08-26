@@ -18,8 +18,10 @@ where
 -- external
 import Control.Monad.Trans.Class    (lift)
 import Control.Monad.Trans.Maybe    (MaybeT (..))
+import Control.Monad.Trans.Writer.Strict (runWriter)
 import Data.Function                (on)
 import GHC.TypeLits.Normalise.Unify (CType (..))
+import qualified GHC.TypeLits.Normalise.Unify as Normalise
 
 -- GHC API
 import Outputable (Outputable (..), ($$), text)
@@ -69,7 +71,8 @@ normaliseNat defs (TyConApp tc tys) = do
   tyM    <- lift (matchFam tc tys')
   case tyM of
     Just (_,ty) -> normaliseNat defs ty
-    _ -> return (C (CType (TyConApp tc tys)))
+    _ -> let q = fst (runWriter (Normalise.normaliseNat (TyConApp tc tys)))
+         in  return (C (CType (Normalise.reifySOP q)))
 
 normaliseNat _ t = return (C (CType t))
 
