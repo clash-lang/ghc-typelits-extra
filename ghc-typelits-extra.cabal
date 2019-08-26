@@ -69,7 +69,7 @@ library
                        ghc                       >= 7.10    && <8.9,
                        ghc-prim                  >= 0.5     && <1.0,
                        ghc-tcplugins-extra       >= 0.2,
-                       ghc-typelits-knownnat     >= 0.6     && <0.7,
+                       ghc-typelits-knownnat     >= 0.6     && <0.8,
                        ghc-typelits-natnormalise >= 0.6     && <0.8,
                        integer-gmp               >= 1.0     && <1.1,
                        transformers              >= 0.4.2.0 && <0.6
