@@ -33,7 +33,7 @@ import GHC.TcPluginM.Extra       (evByFiat, lookupModule, lookupName,
 import FastString (fsLit)
 import Module     (mkModuleName)
 import OccName    (mkTcOcc)
-import Outputable (Outputable (..), (<+>), ($$), text)
+import Outputable (Outputable (..), (<+>), ($$), text, showSDocUnsafe)
 import Plugins    (Plugin (..), defaultPlugin)
 #if MIN_VERSION_ghc(8,6,0)
 import Plugins    (purePlugin)
@@ -55,6 +55,8 @@ import TcTypeNats (typeNatTyCons)
 import TcPluginM  (zonkCt)
 import Control.Monad ((<=<))
 #endif
+
+import Debug.Trace
 
 -- internal
 import GHC.TypeLits.Extra.Solver.Operations
@@ -149,12 +151,12 @@ simplifyExtra eqs = tcPluginTrace "simplifyExtra" (ppr eqs) >> simples [] eqs
         Draw -> simples evs eqs'
     simples evs (eq@(Right (ct,u,v,b)):eqs') = do
       tcPluginTrace "unifyExtra leq result" (ppr (u,v,b))
-      case (u,v) of
+      case (trace (showSDocUnsafe (ppr eqs)) (trace (showSDocUnsafe (ppr (u, v))) (u,v))) of
         (I i,I j)
-          | (i <= j) == b -> simples (((,) <$> evMagic ct <*> pure ct):evs) eqs'
+          | (i <= j) == b -> ok
           | otherwise     -> return  (Impossible eq)
-        (p, Max x y)
-          | b && (p == x || p == y) -> simples (((,) <$> evMagic ct <*> pure ct):evs) eqs'
+
+        (p, Max x y) | b && (p == x || p == y) -> ok
 
         -- transform:  q ~ Max x y => (p <=? q ~ True)
         -- to:         (p <=? Max x y) ~ True
@@ -164,6 +166,8 @@ simplifyExtra eqs = tcPluginTrace "simplifyExtra" (ppr eqs) >> simples [] eqs
                    Just m  -> simples evs ((Right (ct,p,m,b)):eqs')
                    Nothing -> simples evs eqs'
         _ -> simples evs eqs'
+     where
+      ok = simples (((,) <$> evMagic ct <*> pure ct):evs) eqs'
 
     -- look for given constraint with the form: c ~ Max x y
     findMax :: ExtraOp -> [Either NatEquality NatInEquality] -> Maybe ExtraOp
