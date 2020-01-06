@@ -1,5 +1,8 @@
 # Changelog for the [`ghc-typelits-extra`](http://hackage.haskell.org/package/ghc-typelits-extra) package
 
+# 0.3.3 *February 6th 2020*
+* Add support for GHC 8.10.1-alpha2
+
 # 0.3.2 *January 18th 2020*
 * Fix https://github.com/clash-lang/clash-compiler/issues/1019
 

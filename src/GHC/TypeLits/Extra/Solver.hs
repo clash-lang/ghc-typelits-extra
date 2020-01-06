@@ -40,11 +40,8 @@ import Plugins    (purePlugin)
 #endif
 import TcEvidence (EvTerm)
 import TcPluginM  (TcPluginM, tcLookupTyCon, tcPluginTrace)
-import TcRnTypes  (Ct, TcPlugin(..), TcPluginResult (..), ctEvidence, ctEvPred,
-                   isWantedCt)
-import TcType      (typeKind)
-import Type       (EqRel (NomEq), Kind, PredTree (EqPred), classifyPredType,
-                   eqType)
+import TcRnTypes  (TcPlugin(..), TcPluginResult (..))
+import Type       (Kind, eqType)
 import TyCoRep    (Type (..))
 import TysWiredIn (typeNatKind, promotedTrueDataCon, promotedFalseDataCon)
 import TcTypeNats (typeNatLeqTyCon)
@@ -54,6 +51,16 @@ import TcTypeNats (typeNatTyCons)
 #else
 import TcPluginM  (zonkCt)
 import Control.Monad ((<=<))
+#endif
+
+#if MIN_VERSION_ghc(8,10,0)
+import Constraint (Ct, ctEvidence, ctEvPred, isWantedCt)
+import Predicate  (EqRel (NomEq), Pred (EqPred), classifyPredType)
+import Type       (typeKind)
+#else
+import TcRnTypes  (Ct, ctEvidence, ctEvPred, isWantedCt)
+import TcType     (typeKind)
+import Type       (EqRel (NomEq), PredTree (EqPred), classifyPredType)
 #endif
 
 -- internal
