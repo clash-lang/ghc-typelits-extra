@@ -1,5 +1,5 @@
 name:                ghc-typelits-extra
-version:             0.3.2
+version:             0.3.3
 synopsis:            Additional type-level operations on GHC.TypeLits.Nat
 description:
   Additional type-level operations on @GHC.TypeLits.Nat@:
@@ -47,7 +47,9 @@ build-type:          Simple
 extra-source-files:  README.md
                      CHANGELOG.md
 cabal-version:       >=1.10
-tested-with:         GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.4
+tested-with:         GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.5,
+                     GHC == 8.8.1, GHC == 8.10.1
+
 
 source-repository head
   type: git
@@ -66,11 +68,11 @@ library
                        GHC.TypeLits.Extra.Solver.Operations
   build-depends:       base                      >= 4.8     && <5,
                        containers                >= 0.5.7.1 && <0.7,
-                       ghc                       >= 7.10    && <8.9,
+                       ghc                       >= 7.10    && <8.11,
                        ghc-prim                  >= 0.5     && <1.0,
-                       ghc-tcplugins-extra       >= 0.2,
-                       ghc-typelits-knownnat     >= 0.6     && <0.8,
-                       ghc-typelits-natnormalise >= 0.6     && <0.8,
+                       ghc-tcplugins-extra       >= 0.3.1,
+                       ghc-typelits-knownnat     >= 0.7.2   && <0.8,
+                       ghc-typelits-natnormalise >= 0.7.1   && <0.8,
                        integer-gmp               >= 1.0     && <1.1,
                        transformers              >= 0.4.2.0 && <0.6
   hs-source-dirs:      src
@@ -98,8 +100,8 @@ test-suite test-ghc-typelits-extra
   Other-Modules:       ErrorTests
   build-depends:       base                      >= 4.8 && <5,
                        ghc-typelits-extra,
-                       ghc-typelits-knownnat     >= 0.6,
-                       ghc-typelits-natnormalise >= 0.4.1,
+                       ghc-typelits-knownnat     >= 0.7.2,
+                       ghc-typelits-natnormalise >= 0.7.1,
                        tasty                     >= 0.10,
                        tasty-hunit               >= 0.9
   hs-source-dirs:      tests

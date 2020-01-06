@@ -26,11 +26,16 @@ import qualified GHC.TypeLits.Normalise.Unify as Normalise
 -- GHC API
 import Outputable (Outputable (..), ($$), text)
 import TcPluginM  (TcPluginM, matchFam, tcPluginTrace)
-import TcRnMonad  (Ct)
 import TcTypeNats (typeNatExpTyCon)
 import Type       (TyVar, coreView)
 import TyCoRep    (Type (..), TyLit (..))
 import UniqSet    (UniqSet, emptyUniqSet, unionUniqSets, unitUniqSet)
+
+#if MIN_VERSION_ghc(8,10,0)
+import Constraint (Ct)
+#else
+import TcRnMonad  (Ct)
+#endif
 
 -- internal
 import GHC.TypeLits.Extra.Solver.Operations
