@@ -1,5 +1,5 @@
 name:                ghc-typelits-extra
-version:             0.3.1
+version:             0.3.2
 synopsis:            Additional type-level operations on GHC.TypeLits.Nat
 description:
   Additional type-level operations on @GHC.TypeLits.Nat@:

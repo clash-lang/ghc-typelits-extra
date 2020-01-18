@@ -83,6 +83,9 @@ import Data.Type.Bool         (If)
 import GHC.Base               (Int#,isTrue#,(==#),(+#))
 import GHC.Integer.Logarithms (integerLogBase#)
 #if MIN_VERSION_ghc(8,2,0)
+import GHC.Magic              (noinline)
+#endif
+#if MIN_VERSION_ghc(8,2,0)
 import qualified GHC.TypeNats as N
 import GHC.Natural
 import GHC.Prim               (int2Word#)
@@ -217,7 +220,11 @@ type family GCD (x :: Nat) (y :: Nat) :: Nat where
   -- Additional equations are provided by the custom solver
 
 instance (KnownNat x, KnownNat y) => KnownNat2 $(nameToSymbol ''GCD) x y where
-  natSing2 = SNatKn (gcd (N.natVal (Proxy @x)) (N.natVal (Proxy @y)))
+  natSing2 = SNatKn (
+#if MIN_VERSION_ghc(8,2,0)
+    noinline
+#endif
+      gcd (N.natVal (Proxy @x)) (N.natVal (Proxy @y)))
 
 -- | Type-level least common multiple (LCM).
 --
@@ -232,4 +239,8 @@ type family LCM (x :: Nat) (y :: Nat) :: Nat where
   -- Additional equations are provided by the custom solver
 
 instance (KnownNat x, KnownNat y) => KnownNat2 $(nameToSymbol ''LCM) x y where
-  natSing2 = SNatKn (lcm (N.natVal (Proxy @x)) (N.natVal (Proxy @y)))
+  natSing2 = SNatKn (
+#if MIN_VERSION_ghc(8,2,0)
+    noinline
+#endif
+      lcm (N.natVal (Proxy @x)) (N.natVal (Proxy @y)))

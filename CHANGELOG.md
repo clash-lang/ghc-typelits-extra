@@ -1,5 +1,8 @@
 # Changelog for the [`ghc-typelits-extra`](http://hackage.haskell.org/package/ghc-typelits-extra) package
 
+# 0.3.2 *January 18th 2020*
+* Fix https://github.com/clash-lang/clash-compiler/issues/1019
+
 # 0.3.1 *August 26th 2019*
 * Reduce `a <=? Max a b` to `True`
 * Reduce `n ~ (Max a b) => a <=? n` to `True`
