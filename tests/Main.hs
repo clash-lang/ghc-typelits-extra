@@ -132,7 +132,7 @@ test37 _ _ = ()
 test38 :: Proxy (Min (0-1) 0) -> Proxy (0-1)
 test38 = id
 
-test39 :: Proxy (Max (0-1) 0) -> Proxy 0
+test39 :: Proxy (Max (0-1) 0) -> Proxy (0-1)
 test39 = id
 
 test40 :: Proxy x -> Proxy y -> Proxy (Max x y) -> Proxy (Max y x)
@@ -303,7 +303,7 @@ tests = testGroup "ghc-typelits-natnormalise"
     , testCase "Min (0-1) 0 ~ (0-1)" $
       show (test38 Proxy) @?=
       "Proxy"
-    , testCase "Max (0-1) 0 ~ 0" $
+    , testCase "Max (0-1) 0 ~ (0-1)" $
       show (test39 Proxy) @?=
       "Proxy"
     , testCase "forall x y . Max x y ~ Max y x" $

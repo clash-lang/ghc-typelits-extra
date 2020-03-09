@@ -111,6 +111,8 @@ reifyEOP defs (Exp x y)  = mkTyConApp typeNatExpTyCon  [reifyEOP defs x
                                                        ,reifyEOP defs y]
 
 mergeMax :: ExtraDefs -> ExtraOp -> ExtraOp -> ExtraOp
+mergeMax _ (I 0) y = y
+mergeMax _ x (I 0) = x
 mergeMax defs x y =
   let x' = reifyEOP defs x
       y' = reifyEOP defs y
