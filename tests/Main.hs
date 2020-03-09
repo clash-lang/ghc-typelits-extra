@@ -183,6 +183,14 @@ test51
   -> Proxy (2+((2^n)*2))
 test51 _ = id
 
+type family BitPack a :: Nat
+
+test52
+  :: Proxy a
+  -> Proxy (1 + BitPack a)
+  -> Proxy (Max 0 (BitPack a) + CLog 2 2)
+test52 _ = id
+
 main :: IO ()
 main = defaultMain tests
 
@@ -341,6 +349,9 @@ tests = testGroup "ghc-typelits-natnormalise"
       "Proxy"
     , testCase "forall n . Max (((2 ^ n) + 1) + ((2 ^ n) + 1)) 1 ~ 2 + ((2 ^ n) * 2)" $
       show (test51 Proxy Proxy) @?=
+      "Proxy"
+    , testCase "forall a . (1 + BitPack a) ~ (Max 0 (BitPack a) + CLog 2 2" $
+      show (test52 Proxy Proxy) @?=
       "Proxy"
     ]
   , testGroup "errors"

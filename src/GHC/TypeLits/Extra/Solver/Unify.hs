@@ -76,7 +76,7 @@ normaliseNat defs (TyConApp tc tys) = do
   tyM    <- lift (matchFam tc tys')
   case tyM of
     Just (_,ty) -> normaliseNat defs ty
-    _ -> let q = fst (runWriter (Normalise.normaliseNat (TyConApp tc tys)))
+    _ -> let q = fst (runWriter (Normalise.normaliseNat (TyConApp tc tys')))
          in  return (C (CType (Normalise.reifySOP q)))
 
 normaliseNat _ t = return (C (CType t))
