@@ -1,5 +1,8 @@
 # Changelog for the [`ghc-typelits-extra`](http://hackage.haskell.org/package/ghc-typelits-extra) package
 
+# Unreleased **
+* Reduce `n <=? Max (n + p) p` to `True`
+
 # 0.4 *March 9 2020*
 * `Max` short-circuits on zero, but is stuckness preserving. i.e. `Max (0-1) 0` reduces to `(0-1)`
 * Reduce inside arithmetic equations. e.g. `1 + a ~ Max 0 a + CLog 2 2`

@@ -191,6 +191,38 @@ test52
   -> Proxy (Max 0 (BitPack a) + CLog 2 2)
 test52 _ = id
 
+test53
+  :: Proxy n
+  -> Proxy (1 <=? Max (n + 1) 1)
+  -> Proxy True
+test53 _ = id
+
+test54
+  :: Proxy n
+  -> Proxy (n <=? Max (n + 1) 1)
+  -> Proxy True
+test54 _ = id
+
+test55
+  :: Proxy n
+  -> Proxy (n + 1 <=? Max (n + 1) 1)
+  -> Proxy True
+test55 _ = id
+
+test56
+  :: Proxy n
+  -> Proxy p
+  -> Proxy (n <=? Max (n + p) p)
+  -> Proxy True
+test56 _ _ = id
+
+test57
+  :: Proxy n
+  -> Proxy p
+  -> Proxy (n + 1 <=? Max (n + p + 1) p)
+  -> Proxy True
+test57 _ _ = id
+
 main :: IO ()
 main = defaultMain tests
 
@@ -353,6 +385,21 @@ tests = testGroup "ghc-typelits-natnormalise"
     , testCase "forall a . (1 + BitPack a) ~ (Max 0 (BitPack a) + CLog 2 2" $
       show (test52 Proxy Proxy) @?=
       "Proxy"
+    , testCase "forall n . 1 <= Max (n + 1) 1" $
+      show (test53 Proxy Proxy) @?=
+      "Proxy"
+    , testCase "forall n . n <= Max (n + 1) 1" $
+      show (test54 Proxy Proxy) @?=
+      "Proxy"
+    , testCase "forall n . n + 1 <= Max (n + 1) 1" $
+      show (test55 Proxy Proxy) @?=
+      "Proxy"
+    , testCase "forall n p . n <= Max (n + p) p" $
+      show (test56 Proxy Proxy Proxy) @?=
+      "Proxy"
+    , testCase "forall n p . n + 1 <= Max (n + p + 1) p" $
+      show (test57 Proxy Proxy Proxy) @?=
+      "Proxy"
     ]
   , testGroup "errors"
     [ testCase "GCD 6 8 /~ 4" $ testFail1 `throws` testFail1Errors
@@ -381,6 +428,7 @@ tests = testGroup "ghc-typelits-natnormalise"
     , testCase "(z <=? Max x y) /~ True" $ testFail24 `throws` testFail24Errors
     , testCase "(x+1 <=? Max x y) /~ True" $ testFail25 `throws` testFail25Errors
     , testCase "(x <= n) /=> (Max x y) ~ n" $ testFail26 `throws` testFail26Errors
+    , testCase "n + 2 <=? Max (n + 1) 1 /~ True" $ testFail27 `throws` testFail27Errors
     ]
   ]
 
