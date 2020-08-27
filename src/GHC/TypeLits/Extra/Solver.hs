@@ -142,7 +142,7 @@ data SimplifyResult
   | Impossible SolverConstraint
 
 instance Outputable SimplifyResult where
-  ppr (Simplified evs new) = text "Simplified" $$ ppr evs $$ ppr new
+  ppr (Simplified evs new) = text "Simplified" $$ text "Solved:" $$ ppr evs $$ text "New:" $$ ppr new
   ppr (Impossible sct)  = text "Impossible" <+> ppr sct
 
 simplifyExtra :: ExtraDefs -> [SolverConstraint] -> TcPluginM SimplifyResult
@@ -156,7 +156,7 @@ simplifyExtra defs eqs = tcPluginTrace "simplifyExtra" (ppr eqs) >> simples [] [
       case ur of
         Win                          -> simples (((,) <$> evMagic ct <*> pure ct):evs) news eqs'
         Lose | null evs && null eqs' -> return (Impossible eq)
-        _ | norm == Normalised -> do
+        _ | norm == Normalised && isWantedCt ct -> do
           newCt <- createWantedFromNormalised defs eq
           simples (((,) <$> evMagic ct <*> pure ct):evs) (newCt:news) eqs'
         Lose -> simples evs news eqs'
@@ -177,7 +177,7 @@ simplifyExtra defs eqs = tcPluginTrace "simplifyExtra" (ppr eqs) >> simples [] [
           | b -> case findMax q eqs of
                    Just m  -> simples evs news (NatInequality ct p m b norm:eqs')
                    Nothing -> simples evs news eqs'
-        _ | norm == Normalised -> do
+        _ | norm == Normalised && isWantedCt ct -> do
           newCt <- createWantedFromNormalised defs eq
           simples (((,) <$> evMagic ct <*> pure ct):evs) (newCt:news) eqs'
         _ -> simples evs news eqs'
