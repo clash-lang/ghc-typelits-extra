@@ -11,6 +11,9 @@ Maintainer :  Christiaan Baaij <christiaan.baaij@gmail.com>
 module GHC.TypeLits.Extra.Solver.Operations
   ( ExtraOp (..)
   , ExtraDefs (..)
+  , Normalised (..)
+  , NormaliseResult
+  , mergeNormalised
   , reifyEOP
   , mergeMax
   , mergeMin
@@ -41,6 +44,23 @@ import Outputable (Outputable (..), (<+>), integer, text)
 import TcTypeNats (typeNatExpTyCon, typeNatSubTyCon)
 import TyCon      (TyCon)
 import Type       (Type, TyVar, mkNumLitTy, mkTyConApp, mkTyVarTy)
+
+-- | Indicates whether normalisation has occured
+data Normalised = Normalised | Untouched
+  deriving Eq
+
+instance Outputable Normalised where
+  ppr Normalised = text "Normalised"
+  ppr Untouched  = text "Untouched"
+
+mergeNormalised :: Normalised -> Normalised -> Normalised
+mergeNormalised Normalised _ = Normalised
+mergeNormalised _ Normalised = Normalised
+mergeNormalised _ _          = Untouched
+
+-- | A normalise result contains the ExtraOp and a flag that indicates whether any expression
+-- | was normalised within the ExtraOp.
+type NormaliseResult = (ExtraOp, Normalised)
 
 data ExtraOp
   = I    Integer
@@ -110,80 +130,80 @@ reifyEOP defs (LCM x y)  = mkTyConApp (lcmTyCon defs)  [reifyEOP defs x
 reifyEOP defs (Exp x y)  = mkTyConApp typeNatExpTyCon  [reifyEOP defs x
                                                        ,reifyEOP defs y]
 
-mergeMax :: ExtraDefs -> ExtraOp -> ExtraOp -> ExtraOp
-mergeMax _ (I 0) y = y
-mergeMax _ x (I 0) = x
+mergeMax :: ExtraDefs -> ExtraOp -> ExtraOp -> NormaliseResult
+mergeMax _ (I 0) y = (y, Normalised)
+mergeMax _ x (I 0) = (x, Normalised)
 mergeMax defs x y =
   let x' = reifyEOP defs x
       y' = reifyEOP defs y
       z  = fst (runWriter (normaliseNat (mkTyConApp typeNatSubTyCon [y',x'])))
 #if MIN_VERSION_ghc_typelits_natnormalise(0,7,0)
   in  case runWriterT (isNatural z) of
-        Just (True , cs) | Set.null cs -> y
-        Just (False, cs) | Set.null cs -> x
+        Just (True , cs) | Set.null cs -> (y, Normalised)
+        Just (False, cs) | Set.null cs -> (x, Normalised)
 #else
   in  case isNatural z of
-        Just True  -> y
-        Just False -> x
+        Just True  -> (y, Normalised)
+        Just False -> (x, Normalised)
 #endif
-        _ -> Max x y
+        _ -> (Max x y, Untouched)
 
-mergeMin :: ExtraDefs -> ExtraOp -> ExtraOp -> ExtraOp
+mergeMin :: ExtraDefs -> ExtraOp -> ExtraOp -> NormaliseResult
 mergeMin defs x y =
   let x' = reifyEOP defs x
       y' = reifyEOP defs y
       z  = fst (runWriter (normaliseNat (mkTyConApp typeNatSubTyCon [y',x'])))
 #if MIN_VERSION_ghc_typelits_natnormalise(0,7,0)
   in  case runWriterT (isNatural z) of
-        Just (True, cs) | Set.null cs -> x
-        Just (False,cs) | Set.null cs -> y
+        Just (True, cs) | Set.null cs -> (x, Normalised)
+        Just (False,cs) | Set.null cs -> (y, Normalised)
 #else
   in  case isNatural z of
-        Just True  -> x
-        Just False -> y
+        Just True  -> (x, Normalised)
+        Just False -> (y, Normalised)
 #endif
-        _ -> Min x y
+        _ -> (Min x y, Untouched)
 
-mergeDiv :: ExtraOp -> ExtraOp -> Maybe ExtraOp
+mergeDiv :: ExtraOp -> ExtraOp -> Maybe NormaliseResult
 mergeDiv _     (I 0)      = Nothing
-mergeDiv (I i) (I j)      = Just (I (div i j))
-mergeDiv x y              = Just (Div x y)
+mergeDiv (I i) (I j)      = Just (I (div i j), Normalised)
+mergeDiv x y              = Just (Div x y, Untouched)
 
-mergeMod :: ExtraOp -> ExtraOp -> Maybe ExtraOp
+mergeMod :: ExtraOp -> ExtraOp -> Maybe NormaliseResult
 mergeMod _     (I 0)      = Nothing
-mergeMod (I i) (I j)      = Just (I (mod i j))
-mergeMod x y              = Just (Mod x y)
+mergeMod (I i) (I j)      = Just (I (mod i j), Normalised)
+mergeMod x y              = Just (Mod x y, Untouched)
 
-mergeFLog :: ExtraOp -> ExtraOp -> Maybe ExtraOp
+mergeFLog :: ExtraOp -> ExtraOp -> Maybe NormaliseResult
 mergeFLog (I i) _         | i < 2  = Nothing
-mergeFLog i     (Exp j k) | i == j = Just k
-mergeFLog (I i) (I j)              = I <$> flogBase i j
-mergeFLog x     y                  = Just (FLog x y)
+mergeFLog i     (Exp j k) | i == j = Just (k, Normalised)
+mergeFLog (I i) (I j)              = fmap (\r -> (I r, Normalised)) (flogBase i j)
+mergeFLog x     y                  = Just (FLog x y, Untouched)
 
-mergeCLog :: ExtraOp -> ExtraOp -> Maybe ExtraOp
+mergeCLog :: ExtraOp -> ExtraOp -> Maybe NormaliseResult
 mergeCLog (I i) _         | i < 2  = Nothing
-mergeCLog i     (Exp j k) | i == j = Just k
-mergeCLog (I i) (I j)              = I <$> clogBase i j
-mergeCLog x     y                  = Just (CLog x y)
+mergeCLog i     (Exp j k) | i == j = Just (k, Normalised)
+mergeCLog (I i) (I j)              = fmap (\r -> (I r, Normalised)) (clogBase i j)
+mergeCLog x     y                  = Just (CLog x y, Untouched)
 
-mergeLog :: ExtraOp -> ExtraOp -> Maybe ExtraOp
+mergeLog :: ExtraOp -> ExtraOp -> Maybe NormaliseResult
 mergeLog (I i) _          | i < 2   = Nothing
-mergeLog b     (Exp b' y) | b == b' = Just y
-mergeLog (I i) (I j)                = I <$> exactLogBase i j
-mergeLog x     y                    = Just (Log x y)
+mergeLog b     (Exp b' y) | b == b' = Just (y, Normalised)
+mergeLog (I i) (I j)                = fmap (\r -> (I r, Normalised)) (exactLogBase i j)
+mergeLog x     y                    = Just (Log x y, Untouched)
 
-mergeGCD :: ExtraOp -> ExtraOp -> ExtraOp
-mergeGCD (I i) (I j) = I (gcd i j)
-mergeGCD x     y     = GCD x y
+mergeGCD :: ExtraOp -> ExtraOp -> NormaliseResult
+mergeGCD (I i) (I j) = (I (gcd i j), Normalised)
+mergeGCD x     y     = (GCD x y, Untouched)
 
-mergeLCM :: ExtraOp -> ExtraOp -> ExtraOp
-mergeLCM (I i) (I j) = I (lcm i j)
-mergeLCM x     y     = LCM x y
+mergeLCM :: ExtraOp -> ExtraOp -> NormaliseResult
+mergeLCM (I i) (I j) = (I (lcm i j), Normalised)
+mergeLCM x     y     = (LCM x y, Untouched)
 
-mergeExp :: ExtraOp -> ExtraOp -> ExtraOp
-mergeExp (I i) (I j)                = I (i^j)
-mergeExp b     (Log b' y) | b == b' = y
-mergeExp x     y                    = Exp x y
+mergeExp :: ExtraOp -> ExtraOp -> NormaliseResult
+mergeExp (I i) (I j)                = (I (i^j), Normalised)
+mergeExp b     (Log b' y) | b == b' = (y, Normalised)
+mergeExp x     y                    = (Exp x y, Untouched)
 
 -- | \x y -> logBase x y, x > 1 && y > 0
 flogBase :: Integer -> Integer -> Maybe Integer

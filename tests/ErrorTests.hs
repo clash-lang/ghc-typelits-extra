@@ -97,6 +97,9 @@ testFail26' _ _ _ = id
 
 testFail26 = testFail26' (Proxy @4) (Proxy @6) (Proxy @6)
 
+testFail27 :: Proxy n -> Proxy (n + 2 <=? Max (n + 1) 1) -> Proxy True
+testFail27 _ = id
+
 testFail1Errors =
   ["Expected type: Proxy (GCD 6 8) -> Proxy 4"
   ,"Actual type: Proxy 4 -> Proxy 4"
@@ -214,4 +217,9 @@ testFail25Errors =
 testFail26Errors =
   ["Could not deduce: Max x y ~ n"
   ,"from the context: (x <=? n) ~ 'True"
+  ]
+
+testFail27Errors =
+  ["Expected type: Proxy ((n + 2) <=? Max (n + 1) 1) -> Proxy 'True"
+  ,"Actual type: Proxy 'True -> Proxy 'True"
   ]
