@@ -54,7 +54,7 @@ import Control.Monad ((<=<))
 #endif
 
 #if MIN_VERSION_ghc(8,10,0)
-import Constraint (Ct, CtEvidence, ctEvidence, ctEvPred, ctLoc, isWantedCt, cc_ev)
+import Constraint (Ct, ctEvidence, ctEvPred, ctLoc, isWantedCt, cc_ev)
 import Predicate  (EqRel (NomEq), Pred (EqPred), classifyPredType)
 import Type       (typeKind)
 #else
