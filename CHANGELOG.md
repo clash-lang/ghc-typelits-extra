@@ -1,6 +1,6 @@
 # Changelog for the [`ghc-typelits-extra`](http://hackage.haskell.org/package/ghc-typelits-extra) package
 
-# Unreleased **
+# 0.4.1 *November 10 2020*
 * Reduce `n <=? Max (n + p) p` to `True`
 
 # 0.4 *March 9 2020*
