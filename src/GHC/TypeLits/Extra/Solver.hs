@@ -27,8 +27,31 @@ import Control.Monad.Trans.Maybe (MaybeT (..))
 import Data.Maybe                (catMaybes)
 import GHC.TcPluginM.Extra       (evByFiat, lookupModule, lookupName
                                  ,tracePlugin, newWanted)
+#if MIN_VERSION_ghc(8,4,0)
+import GHC.TcPluginM.Extra (flattenGivens)
+#else
+import Control.Monad ((<=<))
+#endif
 
 -- GHC API
+#if MIN_VERSION_ghc(9,0,0)
+import GHC.Builtin.Names (eqPrimTyConKey, hasKey)
+import GHC.Builtin.Types (typeNatKind, promotedTrueDataCon, promotedFalseDataCon)
+import GHC.Builtin.Types.Literals (typeNatLeqTyCon, typeNatTyCons)
+import GHC.Core.Predicate (EqRel (NomEq), Pred (EqPred), classifyPredType)
+import GHC.Core.TyCo.Rep (Type (..))
+import GHC.Core.Type (Kind, eqType, mkTyConApp, splitTyConApp_maybe, typeKind)
+import GHC.Data.FastString (fsLit)
+import GHC.Driver.Plugins (Plugin (..), defaultPlugin, purePlugin)
+import GHC.Tc.Plugin (TcPluginM, tcLookupTyCon, tcPluginTrace)
+import GHC.Tc.Types (TcPlugin(..), TcPluginResult (..))
+import GHC.Tc.Types.Constraint
+  (Ct, ctEvidence, ctEvPred, ctLoc, isWantedCt, cc_ev)
+import GHC.Tc.Types.Evidence (EvTerm)
+import GHC.Types.Name.Occurrence (mkTcOcc)
+import GHC.Unit.Module (mkModuleName)
+import GHC.Utils.Outputable (Outputable (..), (<+>), ($$), text)
+#else
 import FastString (fsLit)
 import Module     (mkModuleName)
 import OccName    (mkTcOcc)
@@ -46,11 +69,9 @@ import TyCoRep    (Type (..))
 import TysWiredIn (typeNatKind, promotedTrueDataCon, promotedFalseDataCon)
 import TcTypeNats (typeNatLeqTyCon)
 #if MIN_VERSION_ghc(8,4,0)
-import GHC.TcPluginM.Extra (flattenGivens)
 import TcTypeNats (typeNatTyCons)
 #else
 import TcPluginM  (zonkCt)
-import Control.Monad ((<=<))
 #endif
 
 #if MIN_VERSION_ghc(8,10,0)
@@ -61,6 +82,7 @@ import Type       (typeKind)
 import TcRnTypes  (Ct, CtEvidence, ctEvidence, ctEvPred, ctLoc, isWantedCt, cc_ev)
 import TcType     (typeKind)
 import Type       (EqRel (NomEq), PredTree (EqPred), classifyPredType)
+#endif
 #endif
 
 -- internal

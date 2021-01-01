@@ -100,6 +100,109 @@ testFail26 = testFail26' (Proxy @4) (Proxy @6) (Proxy @6)
 testFail27 :: Proxy n -> Proxy (n + 2 <=? Max (n + 1) 1) -> Proxy True
 testFail27 _ = id
 
+#if __GLASGOW_HASKELL__ >= 900
+testFail1Errors =
+  ["Expected: Proxy (GCD 6 8) -> Proxy 4"
+  ,"  Actual: Proxy 4 -> Proxy 4"
+  ]
+
+testFail2Errors =
+  ["Expected: Proxy (GCD 6 8 + x) -> Proxy (x + GCD 6 9)"
+  ,"  Actual: Proxy (GCD 6 8 + x) -> Proxy (GCD 6 8 + x)"
+  ]
+
+testFail3Errors =
+  ["Expected: Proxy (CLog 3 10) -> Proxy 2"
+  ,"  Actual: Proxy 2 -> Proxy 2"
+  ]
+
+testFail4Errors =
+  ["Expected: Proxy (CLog 3 10 + x) -> Proxy (x + CLog 2 9)"
+  ,"  Actual: Proxy (CLog 3 10 + x) -> Proxy (CLog 3 10 + x)"
+  ]
+
+testFail5Errors =
+  ["Expected: Proxy (CLog 0 4) -> Proxy 100"
+  ,"  Actual: Proxy 100 -> Proxy 100"
+  ]
+
+testFail6Errors =
+  ["Expected: Proxy (CLog 1 4) -> Proxy 100"
+  ,"  Actual: Proxy 100 -> Proxy 100"
+  ]
+
+testFail7Errors =
+  ["Expected: Proxy (CLog 4 0) -> Proxy 0"
+  ,"  Actual: Proxy 0 -> Proxy 0"
+  ]
+
+testFail8Errors =
+  ["Expected: Proxy (CLog 1 (1 ^ y)) -> Proxy y"
+  ,"  Actual: Proxy y -> Proxy y"
+  ]
+
+testFail9Errors =
+  ["Expected: Proxy (CLog 0 (0 ^ y)) -> Proxy y"
+  ,"  Actual: Proxy y -> Proxy y"
+  ]
+
+testFail12Errors =
+  ["Expected: Proxy (Div 4 0) -> Proxy 4"
+  ,"  Actual: Proxy 4 -> Proxy 4"
+  ]
+
+testFail13Errors =
+  ["Expected: Proxy (Mod 4 0) -> Proxy 4"
+  ,"  Actual: Proxy 4 -> Proxy 4"
+  ]
+
+testFail14Errors =
+  ["Expected: Proxy (FLog 0 4) -> Proxy 100"
+  ,"  Actual: Proxy 100 -> Proxy 100"
+  ]
+
+testFail15Errors =
+  ["Expected: Proxy (FLog 1 4) -> Proxy 100"
+  ,"  Actual: Proxy 100 -> Proxy 100"
+  ]
+
+testFail16Errors =
+  ["Expected: Proxy (FLog 4 0) -> Proxy 0"
+  ,"  Actual: Proxy 0 -> Proxy 0"
+  ]
+
+testFail17Errors =
+  ["Expected: Proxy (LCM 6 8) -> Proxy 48"
+  ,"  Actual: Proxy 48 -> Proxy 48"
+  ]
+
+testFail18Errors =
+  ["Expected: Proxy (LCM 6 8 + x) -> Proxy (x + LCM 6 9)"
+  ,"  Actual: Proxy (LCM 6 8 + x) -> Proxy (LCM 6 8 + x)"
+  ]
+
+testFail19Errors =
+  ["Couldn't match type: FLog 3 0"
+  ,"               with: CLog 3 0"]
+
+testFail20Errors =
+  ["Couldn't match type: FLog 3 10"
+  ,"               with: CLog 3 10"]
+
+testFail21Errors =
+  ["Expected: Proxy (Min a (a * b)) -> Proxy a"
+  ,"  Actual: Proxy a -> Proxy a"
+  ]
+
+testFail22Errors =
+  ["Expected: Proxy (Max a (a * b)) -> Proxy (a * b)"
+  ,"  Actual: Proxy (Max a (a * b)) -> Proxy (Max a (a * b))"]
+
+testFail27Errors =
+  ["Expected: Proxy ((n + 2) <=? Max (n + 1) 1) -> Proxy 'True"
+  ,"  Actual: Proxy 'True -> Proxy 'True"
+  ]
+#else
 testFail1Errors =
   ["Expected type: Proxy (GCD 6 8) -> Proxy 4"
   ,"Actual type: Proxy 4 -> Proxy 4"
@@ -144,12 +247,6 @@ testFail9Errors =
   ["Expected type: Proxy (CLog 0 (0 ^ y)) -> Proxy y"
   ,"Actual type: Proxy y -> Proxy y"
   ]
-
-testFail10Errors =
-  ["Couldn't match type ‘'False’ with ‘'True’"]
-
-testFail11Errors =
-  ["Couldn't match type ‘CLog 2 4 <=? CLog 4 4’ with ‘'True’"]
 
 testFail12Errors =
   ["Expected type: Proxy (Div 4 0) -> Proxy 4"
@@ -201,6 +298,18 @@ testFail22Errors =
   ["Expected type: Proxy (Max a (a * b)) -> Proxy (a * b)"
   ,"Actual type: Proxy (a * b) -> Proxy (a * b)"]
 
+testFail27Errors =
+  ["Expected type: Proxy ((n + 2) <=? Max (n + 1) 1) -> Proxy 'True"
+  ,"Actual type: Proxy 'True -> Proxy 'True"
+  ]
+#endif
+
+testFail10Errors =
+  ["Couldn't match type ‘'False’ with ‘'True’"]
+
+testFail11Errors =
+  ["Couldn't match type ‘CLog 2 4 <=? CLog 4 4’ with ‘'True’"]
+
 testFail23Errors =
 #if __GLASGOW_HASKELL__ >= 804
   ["Couldn't match type ‘'True’ with ‘'False’"]
@@ -217,9 +326,4 @@ testFail25Errors =
 testFail26Errors =
   ["Could not deduce: Max x y ~ n"
   ,"from the context: (x <=? n) ~ 'True"
-  ]
-
-testFail27Errors =
-  ["Expected type: Proxy ((n + 2) <=? Max (n + 1) 1) -> Proxy 'True"
-  ,"Actual type: Proxy 'True -> Proxy 'True"
   ]
