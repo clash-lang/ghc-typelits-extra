@@ -24,17 +24,26 @@ import Data.Function                (on)
 import GHC.TypeLits.Normalise.Unify (CType (..))
 
 -- GHC API
+#if MIN_VERSION_ghc(9,0,0)
+import GHC.Builtin.Types.Literals (typeNatExpTyCon)
+import GHC.Core.TyCo.Rep (Type (..), TyLit (..))
+import GHC.Core.Type (TyVar, coreView)
+import GHC.Tc.Plugin (TcPluginM, tcPluginTrace)
+import GHC.Tc.Types.Constraint (Ct)
+import GHC.Types.Unique.Set (UniqSet, emptyUniqSet, unionUniqSets, unitUniqSet)
+import GHC.Utils.Outputable (Outputable (..), ($$), text)
+#else
 import Outputable (Outputable (..), ($$), text)
 import TcPluginM  (TcPluginM, tcPluginTrace)
 import TcTypeNats (typeNatExpTyCon)
 import Type       (TyVar, coreView)
 import TyCoRep    (Type (..), TyLit (..))
 import UniqSet    (UniqSet, emptyUniqSet, unionUniqSets, unitUniqSet)
-
 #if MIN_VERSION_ghc(8,10,0)
 import Constraint (Ct)
 #else
 import TcRnMonad  (Ct)
+#endif
 #endif
 
 -- internal
