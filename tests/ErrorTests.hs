@@ -308,7 +308,13 @@ testFail10Errors =
   ["Couldn't match type ‘'False’ with ‘'True’"]
 
 testFail11Errors =
+#if __GLASGOW_HASKELL__ >= 902
+  ["Couldn't match type ‘Data.Type.Ord.OrdCond"
+  ,"(CmpNat (CLog 2 4) (CLog 4 4)) 'True 'True 'False’"
+  ,"with ‘'True’"]
+#else
   ["Couldn't match type ‘CLog 2 4 <=? CLog 4 4’ with ‘'True’"]
+#endif
 
 testFail23Errors =
 #if __GLASGOW_HASKELL__ >= 804
@@ -318,10 +324,22 @@ testFail23Errors =
 #endif
 
 testFail24Errors =
+#if __GLASGOW_HASKELL__ >= 902
+  ["Couldn't match type ‘Data.Type.Ord.OrdCond"
+  ,"(CmpNat z (Max x y)) 'True 'True 'False’"
+  ,"with ‘'True’"]
+#else
   ["Couldn't match type ‘z <=? Max x y’ with ‘'True’"]
+#endif
 
 testFail25Errors =
+#if __GLASGOW_HASKELL__ >= 902
+  ["Couldn't match type ‘Data.Type.Ord.OrdCond"
+  ,"(CmpNat (x + 1) (Max x y)) 'True 'True 'False’"
+  ,"with ‘'True’"]
+#else
   ["Couldn't match type ‘(x + 1) <=? Max x y’ with ‘'True’"]
+#endif
 
 testFail26Errors =
   ["Could not deduce: Max x y ~ n"
