@@ -36,8 +36,18 @@ import Control.Monad ((<=<))
 -- GHC API
 #if MIN_VERSION_ghc(9,0,0)
 import GHC.Builtin.Names (eqPrimTyConKey, hasKey)
-import GHC.Builtin.Types (typeNatKind, promotedTrueDataCon, promotedFalseDataCon)
-import GHC.Builtin.Types.Literals (typeNatLeqTyCon, typeNatTyCons)
+import GHC.Builtin.Types (promotedTrueDataCon, promotedFalseDataCon)
+#if MIN_VERSION_ghc(9,2,0)
+import GHC.Builtin.Types (boolTy, naturalTy)
+#else
+import GHC.Builtin.Types (typeNatKind)
+#endif
+import GHC.Builtin.Types.Literals (typeNatTyCons)
+#if MIN_VERSION_ghc(9,2,0)
+import GHC.Builtin.Types.Literals (typeNatCmpTyCon)
+#else
+import GHC.Builtin.Types.Literals (typeNatLeqTyCon)
+#endif
 import GHC.Core.Predicate (EqRel (NomEq), Pred (EqPred), classifyPredType)
 import GHC.Core.TyCo.Rep (Type (..))
 import GHC.Core.Type (Kind, eqType, mkTyConApp, splitTyConApp_maybe, typeKind)
@@ -47,6 +57,9 @@ import GHC.Tc.Plugin (TcPluginM, tcLookupTyCon, tcPluginTrace)
 import GHC.Tc.Types (TcPlugin(..), TcPluginResult (..))
 import GHC.Tc.Types.Constraint
   (Ct, ctEvidence, ctEvPred, ctLoc, isWantedCt, cc_ev)
+#if MIN_VERSION_ghc(9,2,0)
+import GHC.Tc.Types.Constraint (Ct (CQuantCan), qci_ev)
+#endif
 import GHC.Tc.Types.Evidence (EvTerm)
 import GHC.Types.Name.Occurrence (mkTcOcc)
 import GHC.Unit.Module (mkModuleName)
@@ -88,6 +101,11 @@ import Type       (EqRel (NomEq), PredTree (EqPred), classifyPredType)
 -- internal
 import GHC.TypeLits.Extra.Solver.Operations
 import GHC.TypeLits.Extra.Solver.Unify
+
+#if MIN_VERSION_ghc(9,2,0)
+typeNatKind :: Type
+typeNatKind = naturalTy
+#endif
 
 -- | A solver implement as a type-checker plugin for:
 --
@@ -227,8 +245,18 @@ toSolverConstraint defs ct = case classifyPredType $ ctEvPred $ ctEvidence ct of
          (t1', n1) <- normaliseNat defs t1
          (t2', n2) <- normaliseNat defs t2
          pure (NatEquality ct t1' t2' (mergeNormalised n1 n2))
+#if MIN_VERSION_ghc(9,2,0)
+      | TyConApp tc [_,cmpNat,TyConApp tt1 [],TyConApp tt2 [],TyConApp ff1 []] <- t1
+      , tc == ordTyCon defs
+      , TyConApp cmpNatTc [x,y] <- cmpNat
+      , cmpNatTc == typeNatCmpTyCon
+      , tt1 == promotedTrueDataCon
+      , tt2 == promotedTrueDataCon
+      , ff1 == promotedFalseDataCon
+#else
       | TyConApp tc [x,y] <- t1
       , tc == typeNatLeqTyCon
+#endif
       , TyConApp tc' [] <- t2
       -> do
           (x', n1) <- normaliseNat defs x
@@ -245,16 +273,32 @@ toSolverConstraint defs ct = case classifyPredType $ ctEvPred $ ctEvidence ct of
 createWantedFromNormalised :: ExtraDefs -> SolverConstraint -> TcPluginM Ct
 createWantedFromNormalised defs sct = do
   let extractCtSides (NatEquality ct t1 t2 _)   = (ct, reifyEOP defs t1, reifyEOP defs t2)
-      extractCtSides (NatInequality ct x y b _) = let tc = if b then promotedTrueDataCon else promotedFalseDataCon
-                                                      t1 = TyConApp typeNatLeqTyCon [reifyEOP defs x, reifyEOP defs y]
-                                                      t2 = TyConApp tc []
-                                                    in (ct, t1, t2)
+      extractCtSides (NatInequality ct x y b _) =
+        let tc = if b then promotedTrueDataCon else promotedFalseDataCon
+#if MIN_VERSION_ghc(9,2,0)
+            t1 = TyConApp (ordTyCon defs)
+                    [ boolTy
+                    , TyConApp typeNatCmpTyCon [reifyEOP defs x, reifyEOP defs y]
+                    , TyConApp promotedTrueDataCon []
+                    , TyConApp promotedTrueDataCon []
+                    , TyConApp promotedFalseDataCon []
+                    ]
+#else
+            t1 = TyConApp typeNatLeqTyCon [reifyEOP defs x, reifyEOP defs y]
+#endif
+            t2 = TyConApp tc []
+          in (ct, t1, t2)
   let (ct, t1, t2) = extractCtSides sct
   newPredTy <- case splitTyConApp_maybe $ ctEvPred $ ctEvidence ct of
     Just (tc, [a, b, _, _]) | tc `hasKey` eqPrimTyConKey -> pure (mkTyConApp tc [a, b, t1, t2])
     _ -> fail "Nothing"
   ev <- newWanted (ctLoc ct) newPredTy
-  return (ct { cc_ev = ev })
+  let ctN = case ct of
+#if MIN_VERSION_ghc(9,2,0)
+              CQuantCan qc -> CQuantCan (qc { qci_ev = ev})
+#endif
+              ctX -> ctX { cc_ev = ev }
+  return ctN
 
 fromSolverConstraint :: SolverConstraint -> Ct
 fromSolverConstraint (NatEquality ct _ _ _)  = ct
@@ -263,6 +307,9 @@ fromSolverConstraint (NatInequality ct _ _ _ _) = ct
 lookupExtraDefs :: TcPluginM ExtraDefs
 lookupExtraDefs = do
     md <- lookupModule myModule myPackage
+#if MIN_VERSION_ghc(9,2,0)
+    md2 <- lookupModule ordModule basePackage
+#endif
     ExtraDefs <$> look md "Max"
               <*> look md "Min"
 #if MIN_VERSION_ghc(8,4,0)
@@ -277,10 +324,19 @@ lookupExtraDefs = do
               <*> look md "Log"
               <*> look md "GCD"
               <*> look md "LCM"
+#if MIN_VERSION_ghc(9,2,0)
+              <*> look md2 "OrdCond"
+#else
+              <*> pure typeNatLeqTyCon
+#endif
   where
     look md s = tcLookupTyCon =<< lookupName md (mkTcOcc s)
     myModule  = mkModuleName "GHC.TypeLits.Extra"
     myPackage = fsLit "ghc-typelits-extra"
+#if MIN_VERSION_ghc(9,2,0)
+    ordModule   = mkModuleName "Data.Type.Ord"
+    basePackage = fsLit "base"
+#endif
 
 -- Utils
 evMagic :: Ct -> Maybe EvTerm
