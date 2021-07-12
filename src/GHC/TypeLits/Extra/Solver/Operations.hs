@@ -89,7 +89,7 @@ data ExtraOp
   | GCD  ExtraOp ExtraOp
   | LCM  ExtraOp ExtraOp
   | Exp  ExtraOp ExtraOp
-  deriving Eq
+  deriving (Eq, Ord)
 
 instance Outputable ExtraOp where
   ppr (I i)      = integer i
@@ -161,7 +161,10 @@ mergePlus _ (Max a b) y = (Max (Plus a y) (Plus b y), Normalised)
 mergePlus _ x (Max a b) = (Max (Plus x a) (Plus x b), Normalised)
 mergePlus _ (Min a b) y = (Min (Plus a y) (Plus b y), Normalised)
 mergePlus _ x (Min a b) = (Min (Plus x a) (Plus x b), Normalised)
-mergePlus _ x y = (Plus x y, Untouched)
+-- Give a canonical ordering so we can pretend like we have commutativity.
+mergePlus _ x y = (case x <= y of
+                     True -> Plus x y
+                     False-> Plus y x, Untouched)
 
 mergeSub :: ExtraDefs -> ExtraOp -> ExtraOp -> NormaliseResult
 mergeSub _ (Max a b) y = (Max (Sub a y) (Sub b y), Normalised)
@@ -173,7 +176,10 @@ mergeMul _ (Max a b) y = (Max (Mul a y) (Mul b y), Normalised)
 mergeMul _ x (Max a b) = (Max (Mul x a) (Mul x b), Normalised)
 mergeMul _ (Min a b) y = (Min (Mul a y) (Mul b y), Normalised)
 mergeMul _ x (Min a b) = (Min (Mul x a) (Mul x b), Normalised)
-mergeMul _ x y = (Mul x y, Untouched)
+-- Give a canonical ordering so we can pretend like we have commutativity.
+mergeMul _ x y = (case x <= y of
+                    True -> Mul x y
+                    False-> Mul y x, Untouched)
 
 mergeMax :: ExtraDefs -> ExtraOp -> ExtraOp -> NormaliseResult
 mergeMax _ (I 0) y = (y, Normalised)
