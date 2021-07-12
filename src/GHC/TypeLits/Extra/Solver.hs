@@ -310,7 +310,8 @@ lookupExtraDefs = do
 #if MIN_VERSION_ghc(9,2,0)
     md2 <- lookupModule ordModule basePackage
 #endif
-    ExtraDefs <$> look md "Max"
+    ExtraDefs <$> pure (typeNatTyCons !! 0)
+              <*> look md "Max"
               <*> look md "Min"
 #if MIN_VERSION_ghc(8,4,0)
               <*> pure (typeNatTyCons !! 5)

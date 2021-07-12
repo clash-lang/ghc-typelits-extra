@@ -66,6 +66,9 @@ normaliseNat defs ty | Just ty1 <- coreView ty = normaliseNat defs ty1
 normaliseNat _ (TyVarTy v)          = pure (V v, Untouched)
 normaliseNat _ (LitTy (NumTyLit i)) = pure (I i, Untouched)
 normaliseNat defs (TyConApp tc [x,y])
+  | tc == plusTyCon defs = mergeNormResWith (\x' y' -> return (mergePlus defs x' y'))
+                                            (normaliseNat defs x)
+                                            (normaliseNat defs y)
   | tc == maxTyCon defs = mergeNormResWith (\x' y' -> return (mergeMax defs x' y'))
                                            (normaliseNat defs x)
                                            (normaliseNat defs y)
@@ -152,6 +155,7 @@ fvOP :: ExtraOp -> UniqSet TyVar
 fvOP (I _)      = emptyUniqSet
 fvOP (V v)      = unitUniqSet v
 fvOP (C _)      = emptyUniqSet
+fvOP (Plus x y) = fvOP x `unionUniqSets` fvOP y
 fvOP (Max x y)  = fvOP x `unionUniqSets` fvOP y
 fvOP (Min x y)  = fvOP x `unionUniqSets` fvOP y
 fvOP (Div x y)  = fvOP x `unionUniqSets` fvOP y
@@ -170,6 +174,7 @@ containsConstants :: ExtraOp -> Bool
 containsConstants (I _) = False
 containsConstants (V _) = False
 containsConstants (C _) = True
+containsConstants (Plus x y) = containsConstants x || containsConstants y
 containsConstants (Max x y)  = containsConstants x || containsConstants y
 containsConstants (Min x y)  = containsConstants x || containsConstants y
 containsConstants (Div x y)  = containsConstants x || containsConstants y

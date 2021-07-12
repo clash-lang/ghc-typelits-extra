@@ -223,6 +223,18 @@ test57
   -> Proxy True
 test57 _ _ = id
 
+test58 :: Proxy n -> Proxy x -> Proxy y -> Proxy (Max x y + n) -> Proxy (Max (x + n) (y + n))
+test58 _ _ _ = id
+
+test59 :: Proxy n -> Proxy x -> Proxy y -> Proxy (n + Max x y) -> Proxy (Max (n + x) (n + y))
+test59 _ _ _ = id
+
+test60 :: Proxy n -> Proxy x -> Proxy y -> Proxy (Min x y + n) -> Proxy (Min (x + n) (y + n))
+test60 _ _ _ = id
+
+test61 :: Proxy n -> Proxy x -> Proxy y -> Proxy (n + Min x y) -> Proxy (Min (n + x) (n + y))
+test61 _ _ _ = id
+
 main :: IO ()
 main = defaultMain tests
 
