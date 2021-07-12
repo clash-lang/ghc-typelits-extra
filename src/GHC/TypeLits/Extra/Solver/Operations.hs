@@ -44,7 +44,7 @@ import GHC.TypeLits.Normalise.Unify (CType (..), normaliseNat, isNatural)
 
 -- GHC API
 #if MIN_VERSION_ghc(9,0,0)
-import GHC.Builtin.Types.Literals (typeNatExpTyCon, typeNatSubTyCon)
+import GHC.Builtin.Types.Literals (typeNatExpTyCon, typeNatSubTyCon, typeNatAddTyCon, typeNatMulTyCon)
 import GHC.Core.TyCon (TyCon)
 import GHC.Core.Type (Type, TyVar, mkNumLitTy, mkTyConApp, mkTyVarTy)
 import GHC.Utils.Outputable (Outputable (..), (<+>), integer, text)
