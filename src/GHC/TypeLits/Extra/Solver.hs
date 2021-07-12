@@ -80,7 +80,7 @@ import TcRnTypes  (TcPlugin(..), TcPluginResult (..))
 import Type       (Kind, eqType, mkTyConApp, splitTyConApp_maybe)
 import TyCoRep    (Type (..))
 import TysWiredIn (typeNatKind, promotedTrueDataCon, promotedFalseDataCon)
-import TcTypeNats (typeNatLeqTyCon, typeNatMulTyCon, typeNatAddTyCon, typeNatSubTyCon)
+import TcTypeNats (typeNatLeqTyCon)
 #if MIN_VERSION_ghc(8,4,0)
 import TcTypeNats (typeNatTyCons)
 #else
@@ -310,10 +310,7 @@ lookupExtraDefs = do
 #if MIN_VERSION_ghc(9,2,0)
     md2 <- lookupModule ordModule basePackage
 #endif
-    ExtraDefs <$> pure typeNatAddTyCon
-              <*> pure typeNatSubTyCon
-              <*> pure typeNatMulTyCon
-              <*> look md "Max"
+    ExtraDefs <$> look md "Max"
               <*> look md "Min"
 #if MIN_VERSION_ghc(8,4,0)
               <*> pure (typeNatTyCons !! 5)

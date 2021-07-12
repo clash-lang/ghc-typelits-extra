@@ -50,7 +50,7 @@ import GHC.Core.Type (Type, TyVar, mkNumLitTy, mkTyConApp, mkTyVarTy)
 import GHC.Utils.Outputable (Outputable (..), (<+>), integer, text)
 #else
 import Outputable (Outputable (..), (<+>), integer, text)
-import TcTypeNats (typeNatExpTyCon, typeNatSubTyCon)
+import TcTypeNats (typeNatExpTyCon, typeNatSubTyCon, typeNatAddTyCon, typeNatMulTyCon)
 import TyCon      (TyCon)
 import Type       (Type, TyVar, mkNumLitTy, mkTyConApp, mkTyVarTy)
 #endif
@@ -110,10 +110,7 @@ instance Outputable ExtraOp where
   ppr (Exp x y)  = text "Exp (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
 
 data ExtraDefs = ExtraDefs
-  { plusTyCon :: TyCon
-  , subTyCon  :: TyCon
-  , mulTyCon  :: TyCon
-  , maxTyCon  :: TyCon
+  { maxTyCon  :: TyCon
   , minTyCon  :: TyCon
   , divTyCon  :: TyCon
   , modTyCon  :: TyCon
@@ -129,11 +126,11 @@ reifyEOP :: ExtraDefs -> ExtraOp -> Type
 reifyEOP _ (I i) = mkNumLitTy i
 reifyEOP _ (V v) = mkTyVarTy v
 reifyEOP _ (C (CType c)) = c
-reifyEOP defs (Plus x y) = mkTyConApp (plusTyCon defs) [reifyEOP defs x
+reifyEOP defs (Plus x y) = mkTyConApp typeNatAddTyCon  [reifyEOP defs x
                                                        ,reifyEOP defs y]
-reifyEOP defs (Sub x y) = mkTyConApp (subTyCon defs)   [reifyEOP defs x
+reifyEOP defs (Sub x y) = mkTyConApp typeNatSubTyCon   [reifyEOP defs x
                                                        ,reifyEOP defs y]
-reifyEOP defs (Mul x y) = mkTyConApp (mulTyCon defs)   [reifyEOP defs x
+reifyEOP defs (Mul x y) = mkTyConApp typeNatMulTyCon   [reifyEOP defs x
                                                        ,reifyEOP defs y]
 reifyEOP defs (Max x y)  = mkTyConApp (maxTyCon defs)  [reifyEOP defs x
                                                        ,reifyEOP defs y]
@@ -156,30 +153,30 @@ reifyEOP defs (LCM x y)  = mkTyConApp (lcmTyCon defs)  [reifyEOP defs x
 reifyEOP defs (Exp x y)  = mkTyConApp typeNatExpTyCon  [reifyEOP defs x
                                                        ,reifyEOP defs y]
 
-mergePlus :: ExtraDefs -> ExtraOp -> ExtraOp -> NormaliseResult
-mergePlus _ (Max a b) y = (Max (Plus a y) (Plus b y), Normalised)
-mergePlus _ x (Max a b) = (Max (Plus x a) (Plus x b), Normalised)
-mergePlus _ (Min a b) y = (Min (Plus a y) (Plus b y), Normalised)
-mergePlus _ x (Min a b) = (Min (Plus x a) (Plus x b), Normalised)
+mergePlus :: ExtraOp -> ExtraOp -> NormaliseResult
+mergePlus (Max a b) y = (Max (Plus a y) (Plus b y), Normalised)
+mergePlus x (Max a b) = (Max (Plus x a) (Plus x b), Normalised)
+mergePlus (Min a b) y = (Min (Plus a y) (Plus b y), Normalised)
+mergePlus x (Min a b) = (Min (Plus x a) (Plus x b), Normalised)
 -- Give a canonical ordering so we can pretend like we have commutativity.
-mergePlus _ x y = (case x <= y of
-                     True -> Plus x y
-                     False-> Plus y x, Untouched)
+mergePlus x y = (case x <= y of
+                   True -> Plus x y
+                   False-> Plus y x, Untouched)
 
-mergeSub :: ExtraDefs -> ExtraOp -> ExtraOp -> NormaliseResult
-mergeSub _ (Max a b) y = (Max (Sub a y) (Sub b y), Normalised)
-mergeSub _ (Min a b) y = (Min (Sub a y) (Sub b y), Normalised)
-mergeSub _ x y = (Sub x y, Untouched)
+mergeSub :: ExtraOp -> ExtraOp -> NormaliseResult
+mergeSub (Max a b) y = (Max (Sub a y) (Sub b y), Normalised)
+mergeSub (Min a b) y = (Min (Sub a y) (Sub b y), Normalised)
+mergeSub x y = (Sub x y, Untouched)
 
-mergeMul :: ExtraDefs -> ExtraOp -> ExtraOp -> NormaliseResult
-mergeMul _ (Max a b) y = (Max (Mul a y) (Mul b y), Normalised)
-mergeMul _ x (Max a b) = (Max (Mul x a) (Mul x b), Normalised)
-mergeMul _ (Min a b) y = (Min (Mul a y) (Mul b y), Normalised)
-mergeMul _ x (Min a b) = (Min (Mul x a) (Mul x b), Normalised)
+mergeMul :: ExtraOp -> ExtraOp -> NormaliseResult
+mergeMul (Max a b) y = (Max (Mul a y) (Mul b y), Normalised)
+mergeMul x (Max a b) = (Max (Mul x a) (Mul x b), Normalised)
+mergeMul (Min a b) y = (Min (Mul a y) (Mul b y), Normalised)
+mergeMul x (Min a b) = (Min (Mul x a) (Mul x b), Normalised)
 -- Give a canonical ordering so we can pretend like we have commutativity.
-mergeMul _ x y = (case x <= y of
-                    True -> Mul x y
-                    False-> Mul y x, Untouched)
+mergeMul x y = (case x <= y of
+                  True -> Mul x y
+                  False-> Mul y x, Untouched)
 
 mergeMax :: ExtraDefs -> ExtraOp -> ExtraOp -> NormaliseResult
 mergeMax _ (I 0) y = (y, Normalised)
