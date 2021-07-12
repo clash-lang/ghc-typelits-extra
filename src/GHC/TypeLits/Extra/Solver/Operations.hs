@@ -16,6 +16,8 @@ module GHC.TypeLits.Extra.Solver.Operations
   , mergeNormalised
   , reifyEOP
   , mergePlus
+  , mergeSub
+  , mergeMul
   , mergeMax
   , mergeMin
   , mergeDiv
@@ -74,7 +76,9 @@ data ExtraOp
   = I    Integer
   | V    TyVar
   | C    CType
-  | Plus  ExtraOp ExtraOp
+  | Plus ExtraOp ExtraOp
+  | Sub  ExtraOp ExtraOp
+  | Mul  ExtraOp ExtraOp
   | Max  ExtraOp ExtraOp
   | Min  ExtraOp ExtraOp
   | Div  ExtraOp ExtraOp
@@ -91,7 +95,9 @@ instance Outputable ExtraOp where
   ppr (I i)      = integer i
   ppr (V v)      = ppr v
   ppr (C c)      = ppr c
-  ppr (Plus x y)  = text "Plus (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
+  ppr (Plus x y) = text "Plus (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
+  ppr (Sub x y)  = text "Sub (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
+  ppr (Mul x y)  = text "Mul (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
   ppr (Max x y)  = text "Max (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
   ppr (Min x y)  = text "Min (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
   ppr (Div x y)  = text "Div (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
@@ -104,51 +110,70 @@ instance Outputable ExtraOp where
   ppr (Exp x y)  = text "Exp (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
 
 data ExtraDefs = ExtraDefs
-  { plusTyCon  :: TyCon
-  , maxTyCon   :: TyCon
-  , minTyCon   :: TyCon
-  , divTyCon   :: TyCon
-  , modTyCon   :: TyCon
-  , flogTyCon  :: TyCon
-  , clogTyCon  :: TyCon
-  , logTyCon   :: TyCon
-  , gcdTyCon   :: TyCon
-  , lcmTyCon   :: TyCon
-  , ordTyCon   :: TyCon
+  { plusTyCon :: TyCon
+  , subTyCon  :: TyCon
+  , mulTyCon  :: TyCon
+  , maxTyCon  :: TyCon
+  , minTyCon  :: TyCon
+  , divTyCon  :: TyCon
+  , modTyCon  :: TyCon
+  , flogTyCon :: TyCon
+  , clogTyCon :: TyCon
+  , logTyCon  :: TyCon
+  , gcdTyCon  :: TyCon
+  , lcmTyCon  :: TyCon
+  , ordTyCon  :: TyCon
   }
 
 reifyEOP :: ExtraDefs -> ExtraOp -> Type
 reifyEOP _ (I i) = mkNumLitTy i
 reifyEOP _ (V v) = mkTyVarTy v
 reifyEOP _ (C (CType c)) = c
-reifyEOP defs (Plus x y)  = mkTyConApp (plusTyCon defs)  [reifyEOP defs x
-                                                         ,reifyEOP defs y]
-reifyEOP defs (Max x y)  = mkTyConApp (maxTyCon defs)    [reifyEOP defs x
-                                                         ,reifyEOP defs y]
-reifyEOP defs (Min x y)  = mkTyConApp (minTyCon defs)    [reifyEOP defs x
-                                                         ,reifyEOP defs y]
-reifyEOP defs (Div x y)  = mkTyConApp (divTyCon defs)    [reifyEOP defs x
-                                                         ,reifyEOP defs y]
-reifyEOP defs (Mod x y)  = mkTyConApp (modTyCon defs)    [reifyEOP defs x
-                                                         ,reifyEOP defs y]
-reifyEOP defs (CLog x y) = mkTyConApp (clogTyCon defs)   [reifyEOP defs x
-                                                         ,reifyEOP defs y]
-reifyEOP defs (FLog x y) = mkTyConApp (flogTyCon defs)   [reifyEOP defs x
-                                                         ,reifyEOP defs y]
-reifyEOP defs (Log x y)  = mkTyConApp (logTyCon defs)    [reifyEOP defs x
-                                                         ,reifyEOP defs y]
-reifyEOP defs (GCD x y)  = mkTyConApp (gcdTyCon defs)    [reifyEOP defs x
-                                                         ,reifyEOP defs y]
-reifyEOP defs (LCM x y)  = mkTyConApp (lcmTyCon defs)    [reifyEOP defs x
-                                                         ,reifyEOP defs y]
-reifyEOP defs (Exp x y)  = mkTyConApp typeNatExpTyCon    [reifyEOP defs x
-                                                         ,reifyEOP defs y]
+reifyEOP defs (Plus x y) = mkTyConApp (plusTyCon defs) [reifyEOP defs x
+                                                       ,reifyEOP defs y]
+reifyEOP defs (Sub x y) = mkTyConApp (subTyCon defs)   [reifyEOP defs x
+                                                       ,reifyEOP defs y]
+reifyEOP defs (Mul x y) = mkTyConApp (mulTyCon defs)   [reifyEOP defs x
+                                                       ,reifyEOP defs y]
+reifyEOP defs (Max x y)  = mkTyConApp (maxTyCon defs)  [reifyEOP defs x
+                                                       ,reifyEOP defs y]
+reifyEOP defs (Min x y)  = mkTyConApp (minTyCon defs)  [reifyEOP defs x
+                                                       ,reifyEOP defs y]
+reifyEOP defs (Div x y)  = mkTyConApp (divTyCon defs)  [reifyEOP defs x
+                                                       ,reifyEOP defs y]
+reifyEOP defs (Mod x y)  = mkTyConApp (modTyCon defs)  [reifyEOP defs x
+                                                       ,reifyEOP defs y]
+reifyEOP defs (CLog x y) = mkTyConApp (clogTyCon defs) [reifyEOP defs x
+                                                       ,reifyEOP defs y]
+reifyEOP defs (FLog x y) = mkTyConApp (flogTyCon defs) [reifyEOP defs x
+                                                       ,reifyEOP defs y]
+reifyEOP defs (Log x y)  = mkTyConApp (logTyCon defs)  [reifyEOP defs x
+                                                       ,reifyEOP defs y]
+reifyEOP defs (GCD x y)  = mkTyConApp (gcdTyCon defs)  [reifyEOP defs x
+                                                       ,reifyEOP defs y]
+reifyEOP defs (LCM x y)  = mkTyConApp (lcmTyCon defs)  [reifyEOP defs x
+                                                       ,reifyEOP defs y]
+reifyEOP defs (Exp x y)  = mkTyConApp typeNatExpTyCon  [reifyEOP defs x
+                                                       ,reifyEOP defs y]
+
 mergePlus :: ExtraDefs -> ExtraOp -> ExtraOp -> NormaliseResult
 mergePlus _ (Max a b) y = (Max (Plus a y) (Plus b y), Normalised)
 mergePlus _ x (Max a b) = (Max (Plus x a) (Plus x b), Normalised)
 mergePlus _ (Min a b) y = (Min (Plus a y) (Plus b y), Normalised)
 mergePlus _ x (Min a b) = (Min (Plus x a) (Plus x b), Normalised)
 mergePlus _ x y = (Plus x y, Untouched)
+
+mergeSub :: ExtraDefs -> ExtraOp -> ExtraOp -> NormaliseResult
+mergeSub _ (Max a b) y = (Max (Sub a y) (Sub b y), Normalised)
+mergeSub _ (Min a b) y = (Min (Sub a y) (Sub b y), Normalised)
+mergeSub _ x y = (Sub x y, Untouched)
+
+mergeMul :: ExtraDefs -> ExtraOp -> ExtraOp -> NormaliseResult
+mergeMul _ (Max a b) y = (Max (Mul a y) (Mul b y), Normalised)
+mergeMul _ x (Max a b) = (Max (Mul x a) (Mul x b), Normalised)
+mergeMul _ (Min a b) y = (Min (Mul a y) (Mul b y), Normalised)
+mergeMul _ x (Min a b) = (Min (Mul x a) (Mul x b), Normalised)
+mergeMul _ x y = (Mul x y, Untouched)
 
 mergeMax :: ExtraDefs -> ExtraOp -> ExtraOp -> NormaliseResult
 mergeMax _ (I 0) y = (y, Normalised)

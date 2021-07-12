@@ -69,6 +69,12 @@ normaliseNat defs (TyConApp tc [x,y])
   | tc == plusTyCon defs = mergeNormResWith (\x' y' -> return (mergePlus defs x' y'))
                                             (normaliseNat defs x)
                                             (normaliseNat defs y)
+  | tc == subTyCon defs = mergeNormResWith (\x' y' -> return (mergeSub defs x' y'))
+                                           (normaliseNat defs x)
+                                           (normaliseNat defs y)
+  | tc == mulTyCon defs = mergeNormResWith (\x' y' -> return (mergeMul defs x' y'))
+                                           (normaliseNat defs x)
+                                           (normaliseNat defs y)
   | tc == maxTyCon defs = mergeNormResWith (\x' y' -> return (mergeMax defs x' y'))
                                            (normaliseNat defs x)
                                            (normaliseNat defs y)
@@ -156,6 +162,8 @@ fvOP (I _)      = emptyUniqSet
 fvOP (V v)      = unitUniqSet v
 fvOP (C _)      = emptyUniqSet
 fvOP (Plus x y) = fvOP x `unionUniqSets` fvOP y
+fvOP (Sub x y)  = fvOP x `unionUniqSets` fvOP y
+fvOP (Mul  x y) = fvOP x `unionUniqSets` fvOP y
 fvOP (Max x y)  = fvOP x `unionUniqSets` fvOP y
 fvOP (Min x y)  = fvOP x `unionUniqSets` fvOP y
 fvOP (Div x y)  = fvOP x `unionUniqSets` fvOP y
@@ -174,7 +182,9 @@ containsConstants :: ExtraOp -> Bool
 containsConstants (I _) = False
 containsConstants (V _) = False
 containsConstants (C _) = True
-containsConstants (Plus x y) = containsConstants x || containsConstants y
+containsConstants (Plus _ _) = True
+containsConstants (Sub _ _) = True
+containsConstants (Mul _ _) = True
 containsConstants (Max x y)  = containsConstants x || containsConstants y
 containsConstants (Min x y)  = containsConstants x || containsConstants y
 containsConstants (Div x y)  = containsConstants x || containsConstants y

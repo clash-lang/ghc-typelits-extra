@@ -235,6 +235,25 @@ test60 _ _ _ = id
 test61 :: Proxy n -> Proxy x -> Proxy y -> Proxy (n + Min x y) -> Proxy (Min (n + x) (n + y))
 test61 _ _ _ = id
 
+test62 :: Proxy n -> Proxy x -> Proxy y -> Proxy (Max x y * n) -> Proxy (Max (x * n) (y * n))
+test62 _ _ _ = id
+
+test63 :: Proxy n -> Proxy x -> Proxy y -> Proxy (n * Max x y) -> Proxy (Max (n * x) (n * y))
+test63 _ _ _ = id
+
+test64 :: Proxy n -> Proxy x -> Proxy y -> Proxy (Min x y * n) -> Proxy (Min (x * n) (y * n))
+test64 _ _ _ = id
+
+test65 :: Proxy n -> Proxy x -> Proxy y -> Proxy (n * Min x y) -> Proxy (Min (n * x) (n * y))
+test65 _ _ _ = id
+
+test66 :: Proxy n -> Proxy x -> Proxy y -> Proxy (Max x y - n) -> Proxy (Max (x - n) (y - n))
+test66 _ _ _ = id
+
+test67 :: Proxy n -> Proxy x -> Proxy y -> Proxy (Min x y - n) -> Proxy (Min (x - n) (y - n))
+test67 _ _ _ = id
+
+
 main :: IO ()
 main = defaultMain tests
 
@@ -411,6 +430,36 @@ tests = testGroup "ghc-typelits-natnormalise"
       "Proxy"
     , testCase "forall n p . n + 1 <= Max (n + p + 1) p" $
       show (test57 Proxy Proxy Proxy) @?=
+      "Proxy"
+    , testCase "forall n p . Max a b + n = Max (a + n) (b + n)" $
+      show (test58 Proxy Proxy Proxy Proxy) @?=
+      "Proxy"
+    , testCase "forall n p . n + Max a b = Max (n + a) (n + b)" $
+      show (test59 Proxy Proxy Proxy Proxy) @?=
+      "Proxy"
+    , testCase "forall n p . Min a b + n = Min (a + n) (b + n)" $
+      show (test60 Proxy Proxy Proxy Proxy) @?=
+      "Proxy"
+    , testCase "forall n p . n + Min a b = Min (n + a) (n + b)" $
+      show (test61 Proxy Proxy Proxy Proxy) @?=
+      "Proxy"
+    , testCase "forall n p . Max a b * n = Max (a * n) (b * n)" $
+      show (test62 Proxy Proxy Proxy Proxy) @?=
+      "Proxy"
+    , testCase "forall n p . n * Max a b = Max (n * a) (n * b)" $
+      show (test63 Proxy Proxy Proxy Proxy) @?=
+      "Proxy"
+    , testCase "forall n p . Min a b * n = Min (a * n) (b * n)" $
+      show (test64 Proxy Proxy Proxy Proxy) @?=
+      "Proxy"
+    , testCase "forall n p . n * Min a b = Min (n * a) (n * b)" $
+      show (test65 Proxy Proxy Proxy Proxy) @?=
+      "Proxy"
+    , testCase "forall n p . Max a b - n = Max (a - n) (b - n)" $
+      show (test66 Proxy Proxy Proxy Proxy) @?=
+      "Proxy"
+    , testCase "forall n p . Min a b - n = Min (a - n) (b - n)" $
+      show (test67 Proxy Proxy Proxy Proxy) @?=
       "Proxy"
     ]
   , testGroup "errors"
