@@ -15,6 +15,9 @@ module GHC.TypeLits.Extra.Solver.Operations
   , NormaliseResult
   , mergeNormalised
   , reifyEOP
+  , mergePlus
+  , mergeSub
+  , mergeMul
   , mergeMax
   , mergeMin
   , mergeDiv
@@ -33,6 +36,9 @@ import Control.Monad.Trans.Writer.Strict
 #if MIN_VERSION_ghc_typelits_natnormalise(0,7,0)
 import Data.Set                     as Set
 #endif
+#if !MIN_VERSION_base(4,11,0)
+import Data.Semigroup (Semigroup (..))
+#endif
 
 import GHC.Base                     (isTrue#,(==#),(+#))
 import GHC.Integer                  (smallInteger)
@@ -41,13 +47,13 @@ import GHC.TypeLits.Normalise.Unify (CType (..), normaliseNat, isNatural)
 
 -- GHC API
 #if MIN_VERSION_ghc(9,0,0)
-import GHC.Builtin.Types.Literals (typeNatExpTyCon, typeNatSubTyCon)
+import GHC.Builtin.Types.Literals (typeNatExpTyCon, typeNatSubTyCon, typeNatAddTyCon, typeNatMulTyCon)
 import GHC.Core.TyCon (TyCon)
 import GHC.Core.Type (Type, TyVar, mkNumLitTy, mkTyConApp, mkTyVarTy)
 import GHC.Utils.Outputable (Outputable (..), (<+>), integer, text)
 #else
 import Outputable (Outputable (..), (<+>), integer, text)
-import TcTypeNats (typeNatExpTyCon, typeNatSubTyCon)
+import TcTypeNats (typeNatExpTyCon, typeNatSubTyCon, typeNatAddTyCon, typeNatMulTyCon)
 import TyCon      (TyCon)
 import Type       (Type, TyVar, mkNumLitTy, mkTyConApp, mkTyVarTy)
 #endif
@@ -65,6 +71,15 @@ mergeNormalised Normalised _ = Normalised
 mergeNormalised _ Normalised = Normalised
 mergeNormalised _ _          = Untouched
 
+instance Semigroup Normalised where
+  (<>) = mergeNormalised
+
+instance Monoid Normalised where
+  mempty = Untouched
+#if !MIN_VERSION_base(4,11,0)
+  mappend = mergeNormalised
+#endif
+
 -- | A normalise result contains the ExtraOp and a flag that indicates whether any expression
 -- | was normalised within the ExtraOp.
 type NormaliseResult = (ExtraOp, Normalised)
@@ -73,6 +88,9 @@ data ExtraOp
   = I    Integer
   | V    TyVar
   | C    CType
+  | Plus ExtraOp ExtraOp
+  | Sub  ExtraOp ExtraOp
+  | Mul  ExtraOp ExtraOp
   | Max  ExtraOp ExtraOp
   | Min  ExtraOp ExtraOp
   | Div  ExtraOp ExtraOp
@@ -83,12 +101,15 @@ data ExtraOp
   | GCD  ExtraOp ExtraOp
   | LCM  ExtraOp ExtraOp
   | Exp  ExtraOp ExtraOp
-  deriving Eq
+  deriving (Eq, Ord)
 
 instance Outputable ExtraOp where
   ppr (I i)      = integer i
   ppr (V v)      = ppr v
   ppr (C c)      = ppr c
+  ppr (Plus x y) = text "Plus (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
+  ppr (Sub x y)  = text "Sub (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
+  ppr (Mul x y)  = text "Mul (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
   ppr (Max x y)  = text "Max (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
   ppr (Min x y)  = text "Min (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
   ppr (Div x y)  = text "Div (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
@@ -117,6 +138,12 @@ reifyEOP :: ExtraDefs -> ExtraOp -> Type
 reifyEOP _ (I i) = mkNumLitTy i
 reifyEOP _ (V v) = mkTyVarTy v
 reifyEOP _ (C (CType c)) = c
+reifyEOP defs (Plus x y) = mkTyConApp typeNatAddTyCon  [reifyEOP defs x
+                                                       ,reifyEOP defs y]
+reifyEOP defs (Sub x y) = mkTyConApp typeNatSubTyCon   [reifyEOP defs x
+                                                       ,reifyEOP defs y]
+reifyEOP defs (Mul x y) = mkTyConApp typeNatMulTyCon   [reifyEOP defs x
+                                                       ,reifyEOP defs y]
 reifyEOP defs (Max x y)  = mkTyConApp (maxTyCon defs)  [reifyEOP defs x
                                                        ,reifyEOP defs y]
 reifyEOP defs (Min x y)  = mkTyConApp (minTyCon defs)  [reifyEOP defs x
@@ -137,6 +164,25 @@ reifyEOP defs (LCM x y)  = mkTyConApp (lcmTyCon defs)  [reifyEOP defs x
                                                        ,reifyEOP defs y]
 reifyEOP defs (Exp x y)  = mkTyConApp typeNatExpTyCon  [reifyEOP defs x
                                                        ,reifyEOP defs y]
+
+mergePlus :: ExtraOp -> ExtraOp -> NormaliseResult
+mergePlus (Max a b) y = (Max (Plus a y) (Plus b y), Normalised)
+mergePlus x (Max a b) = (Max (Plus x a) (Plus x b), Normalised)
+mergePlus (Min a b) y = (Min (Plus a y) (Plus b y), Normalised)
+mergePlus x (Min a b) = (Min (Plus x a) (Plus x b), Normalised)
+mergePlus x y = (Plus x y, Untouched)
+
+mergeSub :: ExtraOp -> ExtraOp -> NormaliseResult
+mergeSub (Max a b) y = (Max (Sub a y) (Sub b y), Normalised)
+mergeSub (Min a b) y = (Min (Sub a y) (Sub b y), Normalised)
+mergeSub x y = (Sub x y, Untouched)
+
+mergeMul :: ExtraOp -> ExtraOp -> NormaliseResult
+mergeMul (Max a b) y = (Max (Mul a y) (Mul b y), Normalised)
+mergeMul x (Max a b) = (Max (Mul x a) (Mul x b), Normalised)
+mergeMul (Min a b) y = (Min (Mul a y) (Mul b y), Normalised)
+mergeMul x (Min a b) = (Min (Mul x a) (Mul x b), Normalised)
+mergeMul x y = (Mul x y, Untouched)
 
 mergeMax :: ExtraDefs -> ExtraOp -> ExtraOp -> NormaliseResult
 mergeMax _ (I 0) y = (y, Normalised)

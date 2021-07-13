@@ -92,7 +92,7 @@ import Constraint (Ct, ctEvidence, ctEvPred, ctLoc, isWantedCt, cc_ev)
 import Predicate  (EqRel (NomEq), Pred (EqPred), classifyPredType)
 import Type       (typeKind)
 #else
-import TcRnTypes  (Ct, CtEvidence, ctEvidence, ctEvPred, ctLoc, isWantedCt, cc_ev)
+import TcRnTypes  (Ct, ctEvidence, ctEvPred, ctLoc, isWantedCt, cc_ev)
 import TcType     (typeKind)
 import Type       (EqRel (NomEq), PredTree (EqPred), classifyPredType)
 #endif
