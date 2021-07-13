@@ -256,6 +256,8 @@ test67 _ _ _ = id
 test68 :: Proxy a -> Proxy b -> Proxy n -> Proxy (Max (a + n) (b + n)) -> Proxy (n + Max a b)
 test68 _ _ _ = id
 
+test69 :: Proxy a -> Proxy b -> Proxy x -> Proxy y -> Proxy (Max (a + (x * y)) (b + (x * y))) -> Proxy (Max a b + (y * (x + 1 - 1)))
+test69 _ _ _ _ = id
 
 main :: IO ()
 main = defaultMain tests
@@ -466,6 +468,9 @@ tests = testGroup "ghc-typelits-natnormalise"
       "Proxy"
     , testCase "forall a b n. Max (a + n) (b + n) = n + Max a b" $
       show (test68 Proxy Proxy Proxy Proxy) @?=
+      "Proxy"
+    , testCase "forall a b x y. (Max (a + (x * y)) (b + (x * y))) = Max a b + (y * (x + 1 - 1))" $
+      show (test69 Proxy Proxy Proxy Proxy Proxy) @?=
       "Proxy"
     ]
   , testGroup "errors"

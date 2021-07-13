@@ -36,6 +36,9 @@ import Control.Monad.Trans.Writer.Strict
 #if MIN_VERSION_ghc_typelits_natnormalise(0,7,0)
 import Data.Set                     as Set
 #endif
+#if !MIN_VERSION_base(4,11,0)
+import Data.Semigroup (Semigroup (..))
+#endif
 
 import GHC.Base                     (isTrue#,(==#),(+#))
 import GHC.Integer                  (smallInteger)
@@ -67,6 +70,15 @@ mergeNormalised :: Normalised -> Normalised -> Normalised
 mergeNormalised Normalised _ = Normalised
 mergeNormalised _ Normalised = Normalised
 mergeNormalised _ _          = Untouched
+
+instance Semigroup Normalised where
+  (<>) = mergeNormalised
+
+instance Monoid Normalised where
+  mempty = Untouched
+#if !MIN_VERSION_base(4,11,0)
+  mappend = mergeNormalised
+#endif
 
 -- | A normalise result contains the ExtraOp and a flag that indicates whether any expression
 -- | was normalised within the ExtraOp.
@@ -158,10 +170,7 @@ mergePlus (Max a b) y = (Max (Plus a y) (Plus b y), Normalised)
 mergePlus x (Max a b) = (Max (Plus x a) (Plus x b), Normalised)
 mergePlus (Min a b) y = (Min (Plus a y) (Plus b y), Normalised)
 mergePlus x (Min a b) = (Min (Plus x a) (Plus x b), Normalised)
--- Give a canonical ordering so we can pretend like we have commutativity.
-mergePlus x y = (case x <= y of
-                   True -> Plus x y
-                   False-> Plus y x, Untouched)
+mergePlus x y = (Plus x y, Untouched)
 
 mergeSub :: ExtraOp -> ExtraOp -> NormaliseResult
 mergeSub (Max a b) y = (Max (Sub a y) (Sub b y), Normalised)
@@ -173,10 +182,7 @@ mergeMul (Max a b) y = (Max (Mul a y) (Mul b y), Normalised)
 mergeMul x (Max a b) = (Max (Mul x a) (Mul x b), Normalised)
 mergeMul (Min a b) y = (Min (Mul a y) (Mul b y), Normalised)
 mergeMul x (Min a b) = (Min (Mul x a) (Mul x b), Normalised)
--- Give a canonical ordering so we can pretend like we have commutativity.
-mergeMul x y = (case x <= y of
-                  True -> Mul x y
-                  False-> Mul y x, Untouched)
+mergeMul x y = (Mul x y, Untouched)
 
 mergeMax :: ExtraDefs -> ExtraOp -> ExtraOp -> NormaliseResult
 mergeMax _ (I 0) y = (y, Normalised)
