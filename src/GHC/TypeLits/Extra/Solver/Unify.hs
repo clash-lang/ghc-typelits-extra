@@ -19,14 +19,18 @@ where
 -- external
 import Control.Monad.Trans.Class    (lift)
 import Control.Monad.Trans.Maybe    (MaybeT (..))
+import Control.Monad.Trans.Writer.Strict (runWriter)
 import Data.Maybe                   (catMaybes)
 import Data.Function                (on)
 import GHC.TypeLits.Normalise.Unify (CType (..))
+import qualified GHC.TypeLits.Normalise.Unify as Normalise
 
 -- GHC API
 #if MIN_VERSION_ghc(9,0,0)
-import GHC.Builtin.Types.Literals (typeNatExpTyCon)
+import GHC.Builtin.Types.Literals
+  (typeNatExpTyCon, typeNatMulTyCon, typeNatAddTyCon, typeNatSubTyCon)
 import GHC.Core.TyCo.Rep (Type (..), TyLit (..))
+import GHC.Core.TyCon (TyCon)
 import GHC.Core.Type (TyVar, coreView)
 import GHC.Tc.Plugin (TcPluginM, tcPluginTrace)
 import GHC.Tc.Types.Constraint (Ct)
@@ -35,8 +39,10 @@ import GHC.Utils.Outputable (Outputable (..), ($$), text)
 #else
 import Outputable (Outputable (..), ($$), text)
 import TcPluginM  (TcPluginM, tcPluginTrace)
-import TcTypeNats (typeNatExpTyCon)
+import TcTypeNats
+  (typeNatExpTyCon, typeNatAddTyCon, typeNatMulTyCon, typeNatSubTyCon)
 import Type       (TyVar, coreView)
+import TyCon      (TyCon)
 import TyCoRep    (Type (..), TyLit (..))
 import UniqSet    (UniqSet, emptyUniqSet, unionUniqSets, unitUniqSet)
 #if MIN_VERSION_ghc(8,10,0)
@@ -60,12 +66,56 @@ mergeNormResWith f x y = do
   (res, n3) <- f x' y'
   pure (res, n1 `mergeNormalised` n2 `mergeNormalised` n3)
 
+-- | First normalise the expression using the solver from ghc-typelits-natnormalise
+-- before calling the mergeWith operation from this ghc-typelits-extra solver.
+withSOPNormalize ::
+  ExtraDefs ->
+  -- The mergeWith operation
+  (ExtraOp -> ExtraOp -> (ExtraOp, Normalised)) ->
+  -- The (+), (-), or (*) type constructor
+  TyCon ->
+  Type ->
+  Type ->
+  MaybeT TcPluginM NormaliseResult
+withSOPNormalize defs mergeWith tc x y = do
+  (x1, n1) <- normaliseNat defs x
+  (y1, n2) <- normaliseNat defs y
+  let x2 = reifyEOP defs x1
+      y2 = reifyEOP defs y1
+      (q,subtractions) = runWriter (Normalise.normaliseNat (TyConApp tc [x2, y2]))
+      -- Currently we don't use the result of ghc-typelits-natnormalise when there
+      -- are "inner" subtractions, as we would have to emit inequality constraints
+      -- for the arguments of those subtractions to guarantee that the result of
+      -- those subtractions would result in a natural number.
+      --
+      -- TODO: emit inequality constraints for the inner subtractions
+      noSubtractions
+        | tc == typeNatSubTyCon
+        , [(s1, s2)] <- subtractions
+        = CType s1 == CType x2 && CType s2 == CType y2
+        | otherwise
+        = null subtractions
+  if noSubtractions then case Normalise.reifySOP q of
+    TyConApp tcQ [xQ,yQ]
+      | tcQ == tc -> do
+        (x3, n3) <- normaliseNat defs xQ
+        (y3, n4) <- normaliseNat defs yQ
+        let (res,n5) = mergeWith x3 y3
+        return (res, mconcat [n1,n2,n3,n4,n5])
+    resSOP -> do
+      (res, n3) <- normaliseNat defs resSOP
+      return (res, mconcat [n1,n2,n3])
+  else do
+    let (res, n3) = mergeWith x1 y1
+    return (res, mconcat [n1,n2,n3])
 
 normaliseNat :: ExtraDefs -> Type -> MaybeT TcPluginM NormaliseResult
 normaliseNat defs ty | Just ty1 <- coreView ty = normaliseNat defs ty1
 normaliseNat _ (TyVarTy v)          = pure (V v, Untouched)
 normaliseNat _ (LitTy (NumTyLit i)) = pure (I i, Untouched)
 normaliseNat defs (TyConApp tc [x,y])
+  | tc == typeNatAddTyCon = withSOPNormalize defs mergeAdd tc x y
+  | tc == typeNatMulTyCon = withSOPNormalize defs mergeMul tc x y
   | tc == maxTyCon defs = mergeNormResWith (\x' y' -> return (mergeMax defs x' y'))
                                            (normaliseNat defs x)
                                            (normaliseNat defs y)
@@ -152,6 +202,8 @@ fvOP :: ExtraOp -> UniqSet TyVar
 fvOP (I _)      = emptyUniqSet
 fvOP (V v)      = unitUniqSet v
 fvOP (C _)      = emptyUniqSet
+fvOP (Add x y)  = fvOP x `unionUniqSets` fvOP y
+fvOP (Mul x y)  = fvOP x `unionUniqSets` fvOP y
 fvOP (Max x y)  = fvOP x `unionUniqSets` fvOP y
 fvOP (Min x y)  = fvOP x `unionUniqSets` fvOP y
 fvOP (Div x y)  = fvOP x `unionUniqSets` fvOP y
@@ -170,6 +222,8 @@ containsConstants :: ExtraOp -> Bool
 containsConstants (I _) = False
 containsConstants (V _) = False
 containsConstants (C _) = True
+containsConstants (Add _ _)  = True
+containsConstants (Mul _ _)  = True
 containsConstants (Max x y)  = containsConstants x || containsConstants y
 containsConstants (Min x y)  = containsConstants x || containsConstants y
 containsConstants (Div x y)  = containsConstants x || containsConstants y

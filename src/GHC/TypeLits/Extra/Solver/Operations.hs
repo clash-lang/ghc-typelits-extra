@@ -15,6 +15,8 @@ module GHC.TypeLits.Extra.Solver.Operations
   , NormaliseResult
   , mergeNormalised
   , reifyEOP
+  , mergeAdd
+  , mergeMul
   , mergeMax
   , mergeMin
   , mergeDiv
@@ -31,8 +33,12 @@ where
 -- external
 import Control.Monad.Trans.Writer.Strict
 #if MIN_VERSION_ghc_typelits_natnormalise(0,7,0)
-import Data.Set                     as Set
+import qualified Data.Set           as Set
 #endif
+#if !MIN_VERSION_base(4,11,0)
+import Data.Semigroup (Semigroup (..))
+#endif
+
 
 import GHC.Base                     (isTrue#,(==#),(+#))
 import GHC.Integer                  (smallInteger)
@@ -41,13 +47,15 @@ import GHC.TypeLits.Normalise.Unify (CType (..), normaliseNat, isNatural)
 
 -- GHC API
 #if MIN_VERSION_ghc(9,0,0)
-import GHC.Builtin.Types.Literals (typeNatExpTyCon, typeNatSubTyCon)
+import GHC.Builtin.Types.Literals ( typeNatExpTyCon, typeNatSubTyCon
+                                  , typeNatAddTyCon, typeNatMulTyCon)
 import GHC.Core.TyCon (TyCon)
 import GHC.Core.Type (Type, TyVar, mkNumLitTy, mkTyConApp, mkTyVarTy)
 import GHC.Utils.Outputable (Outputable (..), (<+>), integer, text)
 #else
 import Outputable (Outputable (..), (<+>), integer, text)
-import TcTypeNats (typeNatExpTyCon, typeNatSubTyCon)
+import TcTypeNats ( typeNatExpTyCon, typeNatSubTyCon, typeNatAddTyCon
+                  , typeNatMulTyCon)
 import TyCon      (TyCon)
 import Type       (Type, TyVar, mkNumLitTy, mkTyConApp, mkTyVarTy)
 #endif
@@ -65,6 +73,15 @@ mergeNormalised Normalised _ = Normalised
 mergeNormalised _ Normalised = Normalised
 mergeNormalised _ _          = Untouched
 
+instance Semigroup Normalised where
+  (<>) = mergeNormalised
+
+instance Monoid Normalised where
+  mempty = Untouched
+#if !MIN_VERSION_base(4,11,0)
+  mappend = mergeNormalised
+#endif
+
 -- | A normalise result contains the ExtraOp and a flag that indicates whether any expression
 -- | was normalised within the ExtraOp.
 type NormaliseResult = (ExtraOp, Normalised)
@@ -73,6 +90,8 @@ data ExtraOp
   = I    Integer
   | V    TyVar
   | C    CType
+  | Add ExtraOp ExtraOp
+  | Mul ExtraOp ExtraOp
   | Max  ExtraOp ExtraOp
   | Min  ExtraOp ExtraOp
   | Div  ExtraOp ExtraOp
@@ -89,6 +108,8 @@ instance Outputable ExtraOp where
   ppr (I i)      = integer i
   ppr (V v)      = ppr v
   ppr (C c)      = ppr c
+  ppr (Add x y)  = text "Add (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
+  ppr (Mul x y)  = text "Mul (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
   ppr (Max x y)  = text "Max (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
   ppr (Min x y)  = text "Min (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
   ppr (Div x y)  = text "Div (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
@@ -117,6 +138,10 @@ reifyEOP :: ExtraDefs -> ExtraOp -> Type
 reifyEOP _ (I i) = mkNumLitTy i
 reifyEOP _ (V v) = mkTyVarTy v
 reifyEOP _ (C (CType c)) = c
+reifyEOP defs (Add x y)  = mkTyConApp typeNatAddTyCon  [reifyEOP defs x
+                                                       ,reifyEOP defs y]
+reifyEOP defs (Mul x y)  = mkTyConApp typeNatMulTyCon  [reifyEOP defs x
+                                                       ,reifyEOP defs y]
 reifyEOP defs (Max x y)  = mkTyConApp (maxTyCon defs)  [reifyEOP defs x
                                                        ,reifyEOP defs y]
 reifyEOP defs (Min x y)  = mkTyConApp (minTyCon defs)  [reifyEOP defs x
@@ -137,6 +162,13 @@ reifyEOP defs (LCM x y)  = mkTyConApp (lcmTyCon defs)  [reifyEOP defs x
                                                        ,reifyEOP defs y]
 reifyEOP defs (Exp x y)  = mkTyConApp typeNatExpTyCon  [reifyEOP defs x
                                                        ,reifyEOP defs y]
+
+mergeAdd :: ExtraOp -> ExtraOp -> NormaliseResult
+mergeAdd (Log b1 x1) (Log b2 x2) | b1 == b2 = (Log b1 (Mul x1 x2), Normalised)
+mergeAdd x y = (Add x y, Untouched)
+
+mergeMul :: ExtraOp -> ExtraOp -> NormaliseResult
+mergeMul x y = (Mul x y, Untouched)
 
 mergeMax :: ExtraDefs -> ExtraOp -> ExtraOp -> NormaliseResult
 mergeMax _ (I 0) y = (y, Normalised)
