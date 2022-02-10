@@ -1,5 +1,8 @@
 # Changelog for the [`ghc-typelits-extra`](http://hackage.haskell.org/package/ghc-typelits-extra) package
 
+# Unreleased
+* Normalise `Log base a + Log base b + ... + Log base z` to `Log base (a * b * ... * z)`
+
 # 0.4.3 *June 18th 2021*
 * Add support for GHC 9.2.0.20210422
 
