@@ -12,13 +12,12 @@ module GHC.TypeLits.Extra.Solver.Unify
   , UnifyResult (..)
   , NormaliseResult
   , normaliseNat
+  , toExtraOp
   , unifyExtra
   )
 where
 
 -- external
-import Control.Monad.Trans.Class    (lift)
-import Control.Monad.Trans.Maybe    (MaybeT (..))
 import Data.Maybe                   (catMaybes)
 import Data.Function                (on)
 import GHC.TypeLits.Normalise.Unify (CType (..))
@@ -50,64 +49,77 @@ import TcRnMonad  (Ct)
 import GHC.TypeLits.Extra.Solver.Operations
 
 mergeNormResWith
-  :: (ExtraOp -> ExtraOp -> MaybeT TcPluginM NormaliseResult)
-  -> MaybeT TcPluginM NormaliseResult
-  -> MaybeT TcPluginM NormaliseResult
-  -> MaybeT TcPluginM NormaliseResult
+  :: (ExtraOp -> ExtraOp -> Maybe NormaliseResult)
+  -> Maybe NormaliseResult
+  -> Maybe NormaliseResult
+  -> Maybe NormaliseResult
 mergeNormResWith f x y = do
   (x', n1) <- x
   (y', n2) <- y
   (res, n3) <- f x' y'
   pure (res, n1 `mergeNormalised` n2 `mergeNormalised` n3)
 
+toExtraOp :: ExtraDefs -> Type -> Maybe ExtraOp
+toExtraOp defs ty | Just ty1 <- coreView ty = toExtraOp defs ty1
+toExtraOp _ (TyVarTy v)          = pure (V v)
+toExtraOp _ (LitTy (NumTyLit i)) = pure (I i)
+toExtraOp defs (TyConApp tc [x,y])
+  | tc == maxTyCon defs = Max <$> (toExtraOp defs x) <*> (toExtraOp defs y)
+  | tc == minTyCon defs = Min <$> (toExtraOp defs x) <*> (toExtraOp defs y)
+  | tc == divTyCon defs = Div <$> (toExtraOp defs x) <*> (toExtraOp defs y)
+  | tc == modTyCon defs = Mod <$> (toExtraOp defs x) <*> (toExtraOp defs y)
+  | tc == flogTyCon defs = FLog <$> (toExtraOp defs x) <*> (toExtraOp defs y)
+  | tc == clogTyCon defs = CLog <$> (toExtraOp defs x) <*> (toExtraOp defs y)
+  | tc == logTyCon defs = Log <$> (toExtraOp defs x) <*> (toExtraOp defs y)
+  | tc == gcdTyCon defs = GCD <$> (toExtraOp defs x) <*> (toExtraOp defs y)
+  | tc == lcmTyCon defs = LCM <$> (toExtraOp defs x) <*> (toExtraOp defs y)
+  | tc == typeNatExpTyCon = Exp <$> (toExtraOp defs x) <*> (toExtraOp defs y)
+toExtraOp _ t = Just (C (CType t))
 
-normaliseNat :: ExtraDefs -> Type -> MaybeT TcPluginM NormaliseResult
-normaliseNat defs ty | Just ty1 <- coreView ty = normaliseNat defs ty1
-normaliseNat _ (TyVarTy v)          = pure (V v, Untouched)
-normaliseNat _ (LitTy (NumTyLit i)) = pure (I i, Untouched)
-normaliseNat defs (TyConApp tc [x,y])
-  | tc == maxTyCon defs = mergeNormResWith (\x' y' -> return (mergeMax defs x' y'))
-                                           (normaliseNat defs x)
-                                           (normaliseNat defs y)
-  | tc == minTyCon defs = mergeNormResWith (\x' y' -> return (mergeMin defs x' y'))
-                                           (normaliseNat defs x)
-                                           (normaliseNat defs y)
-  | tc == divTyCon defs = mergeNormResWith (\x' y' -> MaybeT (return (mergeDiv x' y')))
-                                           (normaliseNat defs x)
-                                           (normaliseNat defs y)
-  | tc == modTyCon defs = mergeNormResWith (\x' y' -> MaybeT (return (mergeMod x' y')))
-                                           (normaliseNat defs x)
-                                           (normaliseNat defs y)
-  | tc == flogTyCon defs = mergeNormResWith (\x' y' -> MaybeT (return (mergeFLog x' y')))
-                                           (normaliseNat defs x)
-                                           (normaliseNat defs y)
-  | tc == clogTyCon defs = mergeNormResWith (\x' y' -> MaybeT (return (mergeCLog x' y')))
-                                           (normaliseNat defs x)
-                                           (normaliseNat defs y)
-  | tc == logTyCon defs = mergeNormResWith (\x' y' -> MaybeT (return (mergeLog x' y')))
-                                           (normaliseNat defs x)
-                                           (normaliseNat defs y)
-  | tc == gcdTyCon defs = mergeNormResWith (\x' y' -> return (mergeGCD x' y'))
-                                           (normaliseNat defs x)
-                                           (normaliseNat defs y)
-  | tc == lcmTyCon defs = mergeNormResWith (\x' y' -> return (mergeLCM x' y'))
-                                           (normaliseNat defs x)
-                                           (normaliseNat defs y)
-  | tc == typeNatExpTyCon = mergeNormResWith (\x' y' -> return (mergeExp x' y'))
-                                             (normaliseNat defs x)
-                                             (normaliseNat defs y)
-
-normaliseNat defs (TyConApp tc tys) = do
+normaliseNat :: ExtraDefs -> ExtraOp -> Maybe NormaliseResult
+normaliseNat _ (I i) = pure (I i, Untouched)
+normaliseNat _ (V v) = pure (V v, Untouched)
+normaliseNat defs (Max x y) = mergeNormResWith (\x' y' -> pure (mergeMax defs x' y'))
+                                (normaliseNat defs x)
+                                (normaliseNat defs y)
+normaliseNat defs (Min x y) = mergeNormResWith (\x' y' -> pure (mergeMin defs x' y'))
+                                (normaliseNat defs x)
+                                (normaliseNat defs y)
+normaliseNat defs (Div x y) = mergeNormResWith (\x' y' -> (mergeDiv x' y'))
+                                (normaliseNat defs x)
+                                (normaliseNat defs y)
+normaliseNat defs (Mod x y) = mergeNormResWith (\x' y' -> (mergeMod x' y'))
+                                (normaliseNat defs x)
+                                (normaliseNat defs y)
+normaliseNat defs (FLog x y) = mergeNormResWith (\x' y' -> (mergeFLog x' y'))
+                                (normaliseNat defs x)
+                                (normaliseNat defs y)
+normaliseNat defs (CLog x y) = mergeNormResWith (\x' y' -> (mergeCLog x' y'))
+                                (normaliseNat defs x)
+                                (normaliseNat defs y)
+normaliseNat defs (Log x y) = mergeNormResWith (\x' y' -> (mergeLog x' y'))
+                               (normaliseNat defs x)
+                               (normaliseNat defs y)
+normaliseNat defs (GCD x y) = mergeNormResWith (\x' y' -> pure (mergeGCD x' y'))
+                               (normaliseNat defs x)
+                               (normaliseNat defs y)
+normaliseNat defs (LCM x y) = mergeNormResWith (\x' y' -> pure (mergeLCM x' y'))
+                               (normaliseNat defs x)
+                               (normaliseNat defs y)
+normaliseNat defs (Exp x y) = mergeNormResWith (\x' y' -> pure (mergeExp x' y'))
+                               (normaliseNat defs x)
+                               (normaliseNat defs y)
+normaliseNat defs (C (CType (TyConApp tc tys))) = do
   let mergeExtraOp [] = []
       mergeExtraOp ((Just (op, Normalised), _):xs) = reifyEOP defs op:mergeExtraOp xs
       mergeExtraOp ((_, ty):xs) = ty:mergeExtraOp xs
 
-  normResults <- lift (sequence (runMaybeT . normaliseNat defs <$> tys))
+  let normResults = map (\t -> toExtraOp defs t >>= normaliseNat defs) tys
   let anyNormalised = foldr mergeNormalised Untouched (snd <$> catMaybes normResults)
   let tys' = mergeExtraOp (zip normResults tys)
   pure (C (CType (TyConApp tc tys')), anyNormalised)
 
-normaliseNat _ t = return (C (CType t), Untouched)
+normaliseNat _ eop = Just (eop, Untouched)
 
 -- | Result of comparing two 'SOP' terms, returning a potential substitution
 -- list under which the two terms are equal.

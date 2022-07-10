@@ -242,8 +242,8 @@ toSolverConstraint defs ct = case classifyPredType $ ctEvPred $ ctEvidence ct of
     EqPred NomEq t1 t2
       | isNatKind (typeKind t1) || isNatKind (typeKind t2)
       -> do
-         (t1', n1) <- normaliseNat defs t1
-         (t2', n2) <- normaliseNat defs t2
+         (t1', n1) <- MaybeT (pure (toExtraOp defs t1 >>= normaliseNat defs))
+         (t2', n2) <- MaybeT (pure (toExtraOp defs t2 >>= normaliseNat defs))
          pure (NatEquality ct t1' t2' (mergeNormalised n1 n2))
 #if MIN_VERSION_ghc(9,2,0)
       | TyConApp tc [_,cmpNat,TyConApp tt1 [],TyConApp tt2 [],TyConApp ff1 []] <- t1
@@ -259,8 +259,8 @@ toSolverConstraint defs ct = case classifyPredType $ ctEvPred $ ctEvidence ct of
 #endif
       , TyConApp tc' [] <- t2
       -> do
-          (x', n1) <- normaliseNat defs x
-          (y', n2) <- normaliseNat defs y
+          (x', n1) <- MaybeT (pure (toExtraOp defs x >>= normaliseNat defs))
+          (y', n2) <- MaybeT (pure (toExtraOp defs y >>= normaliseNat defs))
           let res | tc' == promotedTrueDataCon  = pure (NatInequality ct x' y' True  (mergeNormalised n1 n2))
                   | tc' == promotedFalseDataCon = pure (NatInequality ct x' y' False (mergeNormalised n1 n2))
                   | otherwise                   = fail "Nothing"
