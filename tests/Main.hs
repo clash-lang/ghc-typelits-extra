@@ -223,6 +223,33 @@ test57
   -> Proxy True
 test57 _ _ = id
 
+test58
+  :: Proxy (CLog 2 (n * 2))
+  -> Proxy (CLog 2 n + 1)
+test58 = id
+
+test59
+  :: Proxy n
+  -> Proxy b
+  -> Proxy (CLog b (n * b))
+  -> Proxy (CLog b n + 1)
+test59 _ _ = id
+
+test60
+  :: Proxy n
+  -> Proxy b
+  -> Proxy (CLog b (n * b * b))
+  -> Proxy (CLog b n + 2)
+test60 _ _ = id
+
+test61
+  :: Proxy n
+  -> Proxy b
+  -> Proxy f
+  -> Proxy (CLog (b ^ n) ((f * (b ^ n)) + (f * (b ^ n))))
+  -> Proxy (CLog (b ^ n) (2 * f) + 1)
+test61 _ _ _ = id
+
 main :: IO ()
 main = defaultMain tests
 
@@ -399,6 +426,18 @@ tests = testGroup "ghc-typelits-natnormalise"
       "Proxy"
     , testCase "forall n p . n + 1 <= Max (n + p + 1) p" $
       show (test57 Proxy Proxy Proxy) @?=
+      "Proxy"
+    , testCase "forall n . CLog 2 (n * 2) ~ CLog 2 n + 1" $
+      show (test58 Proxy) @?=
+      "Proxy"
+    , testCase "forall n b. CLog b (n * b) ~ CLog b n + 1" $
+      show (test59 Proxy Proxy Proxy) @?=
+      "Proxy"
+    , testCase "forall n b. CLog b (n * b * b) ~ CLog b n + 2" $
+      show (test60 Proxy Proxy Proxy) @?=
+      "Proxy"
+    , testCase "forall n b f. CLog (b ^ n) ((f * (b ^ n)) + (f * (b ^ n)))) ~ CLog (b ^ n) (2 * f) + 1" $
+      show (test61 Proxy Proxy Proxy Proxy) @?=
       "Proxy"
     ]
   , testGroup "errors"

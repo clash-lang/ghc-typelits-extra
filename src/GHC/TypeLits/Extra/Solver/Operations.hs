@@ -14,6 +14,7 @@ module GHC.TypeLits.Extra.Solver.Operations
   , Normalised (..)
   , NormaliseResult
   , mergeNormalised
+  , toExtraOp
   , reifyEOP
   , mergeMax
   , mergeMin
@@ -37,19 +38,26 @@ import Data.Set                     as Set
 import GHC.Base                     (isTrue#,(==#),(+#))
 import GHC.Integer                  (smallInteger)
 import GHC.Integer.Logarithms       (integerLogBase#)
-import GHC.TypeLits.Normalise.Unify (CType (..), normaliseNat, isNatural)
+
+import qualified GHC.TypeLits.Normalise.SOP as N
+  (SOP (..), Product(..), Symbol(..))
+import qualified GHC.TypeLits.Normalise.Unify as N
+  (CType (..), normaliseNat, isNatural, reifySOP)
 
 -- GHC API
 #if MIN_VERSION_ghc(9,0,0)
-import GHC.Builtin.Types.Literals (typeNatExpTyCon, typeNatSubTyCon)
+import GHC.Builtin.Types.Literals (typeNatExpTyCon, typeNatAddTyCon
+                                  , typeNatSubTyCon)
 import GHC.Core.TyCon (TyCon)
-import GHC.Core.Type (Type, TyVar, mkNumLitTy, mkTyConApp, mkTyVarTy)
+import GHC.Core.TyCo.Rep (Type (..), TyLit (..))
+import GHC.Core.Type (TyVar, mkNumLitTy, mkTyConApp, mkTyVarTy, coreView)
 import GHC.Utils.Outputable (Outputable (..), (<+>), integer, text)
 #else
 import Outputable (Outputable (..), (<+>), integer, text)
-import TcTypeNats (typeNatExpTyCon, typeNatSubTyCon)
+import TcTypeNats (typeNatExpTyCon, typeNatAddTyCon, typeNatSubTyCon)
 import TyCon      (TyCon)
-import Type       (Type, TyVar, mkNumLitTy, mkTyConApp, mkTyVarTy)
+import TyCoRep    (Type (..), TyLit (..))
+import Type       (Type, TyVar, mkNumLitTy, mkTyConApp, mkTyVarTy, coreView)
 #endif
 
 -- | Indicates whether normalisation has occured
@@ -65,6 +73,23 @@ mergeNormalised Normalised _ = Normalised
 mergeNormalised _ Normalised = Normalised
 mergeNormalised _ _          = Untouched
 
+toExtraOp :: ExtraDefs -> Type -> Maybe ExtraOp
+toExtraOp defs ty | Just ty1 <- coreView ty = toExtraOp defs ty1
+toExtraOp _ (TyVarTy v)          = pure (V v)
+toExtraOp _ (LitTy (NumTyLit i)) = pure (I i)
+toExtraOp defs (TyConApp tc [x,y])
+  | tc == maxTyCon defs = Max <$> (toExtraOp defs x) <*> (toExtraOp defs y)
+  | tc == minTyCon defs = Min <$> (toExtraOp defs x) <*> (toExtraOp defs y)
+  | tc == divTyCon defs = Div <$> (toExtraOp defs x) <*> (toExtraOp defs y)
+  | tc == modTyCon defs = Mod <$> (toExtraOp defs x) <*> (toExtraOp defs y)
+  | tc == flogTyCon defs = FLog <$> (toExtraOp defs x) <*> (toExtraOp defs y)
+  | tc == clogTyCon defs = CLog <$> (toExtraOp defs x) <*> (toExtraOp defs y)
+  | tc == logTyCon defs = Log <$> (toExtraOp defs x) <*> (toExtraOp defs y)
+  | tc == gcdTyCon defs = GCD <$> (toExtraOp defs x) <*> (toExtraOp defs y)
+  | tc == lcmTyCon defs = LCM <$> (toExtraOp defs x) <*> (toExtraOp defs y)
+  | tc == typeNatExpTyCon = Exp <$> (toExtraOp defs x) <*> (toExtraOp defs y)
+toExtraOp _ t = Just (C (N.CType t))
+
 -- | A normalise result contains the ExtraOp and a flag that indicates whether any expression
 -- | was normalised within the ExtraOp.
 type NormaliseResult = (ExtraOp, Normalised)
@@ -72,7 +97,7 @@ type NormaliseResult = (ExtraOp, Normalised)
 data ExtraOp
   = I    Integer
   | V    TyVar
-  | C    CType
+  | C    N.CType
   | Max  ExtraOp ExtraOp
   | Min  ExtraOp ExtraOp
   | Div  ExtraOp ExtraOp
@@ -116,7 +141,7 @@ data ExtraDefs = ExtraDefs
 reifyEOP :: ExtraDefs -> ExtraOp -> Type
 reifyEOP _ (I i) = mkNumLitTy i
 reifyEOP _ (V v) = mkTyVarTy v
-reifyEOP _ (C (CType c)) = c
+reifyEOP _ (C (N.CType c)) = c
 reifyEOP defs (Max x y)  = mkTyConApp (maxTyCon defs)  [reifyEOP defs x
                                                        ,reifyEOP defs y]
 reifyEOP defs (Min x y)  = mkTyConApp (minTyCon defs)  [reifyEOP defs x
@@ -144,13 +169,13 @@ mergeMax _ x (I 0) = (x, Normalised)
 mergeMax defs x y =
   let x' = reifyEOP defs x
       y' = reifyEOP defs y
-      z  = fst (runWriter (normaliseNat (mkTyConApp typeNatSubTyCon [y',x'])))
+      z  = fst (runWriter (N.normaliseNat (mkTyConApp typeNatSubTyCon [y',x'])))
 #if MIN_VERSION_ghc_typelits_natnormalise(0,7,0)
-  in  case runWriterT (isNatural z) of
+  in  case runWriterT (N.isNatural z) of
         Just (True , cs) | Set.null cs -> (y, Normalised)
         Just (False, cs) | Set.null cs -> (x, Normalised)
 #else
-  in  case isNatural z of
+  in  case N.isNatural z of
         Just True  -> (y, Normalised)
         Just False -> (x, Normalised)
 #endif
@@ -160,13 +185,13 @@ mergeMin :: ExtraDefs -> ExtraOp -> ExtraOp -> NormaliseResult
 mergeMin defs x y =
   let x' = reifyEOP defs x
       y' = reifyEOP defs y
-      z  = fst (runWriter (normaliseNat (mkTyConApp typeNatSubTyCon [y',x'])))
+      z  = fst (runWriter (N.normaliseNat (mkTyConApp typeNatSubTyCon [y',x'])))
 #if MIN_VERSION_ghc_typelits_natnormalise(0,7,0)
-  in  case runWriterT (isNatural z) of
+  in  case runWriterT (N.isNatural z) of
         Just (True, cs) | Set.null cs -> (x, Normalised)
         Just (False,cs) | Set.null cs -> (y, Normalised)
 #else
-  in  case isNatural z of
+  in  case N.isNatural z of
         Just True  -> (x, Normalised)
         Just False -> (y, Normalised)
 #endif
@@ -182,23 +207,70 @@ mergeMod _     (I 0)      = Nothing
 mergeMod (I i) (I j)      = Just (I (mod i j), Normalised)
 mergeMod x y              = Just (Mod x y, Untouched)
 
-mergeFLog :: ExtraOp -> ExtraOp -> Maybe NormaliseResult
-mergeFLog (I i) _         | i < 2  = Nothing
-mergeFLog i     (Exp j k) | i == j = Just (k, Normalised)
-mergeFLog (I i) (I j)              = fmap (\r -> (I r, Normalised)) (flogBase i j)
-mergeFLog x     y                  = Just (FLog x y, Untouched)
+-- | Try to factor out terms in the logarithm. I.e., reduce `Log b (n * b^f)`
+-- to `(Log b n) + f`.
+tryFactorLog
+  :: (ExtraOp -> ExtraOp -> ExtraOp)
+  -> ExtraDefs
+  -> ExtraOp
+  -> ExtraOp
+  -> Maybe NormaliseResult
+tryFactorLog logConstr defs x y = result
+  where
+    -- Get SOP from Natnormalise plugins and check if the sum of products
+    -- contains forall v. base^v in all products. If this is the case
+    -- we can extract the v outside of the log and eliminate the base*v from
+    -- the log. I.e., reduce `Log b (n * b^f)` to `(Log b n) + f`.
+    --
+    -- TODO: We could go even further and find the smallest common factor
+    -- and extract it out. Probably only worth it if it is a literal
+    mkProduct [] = N.P [N.I 1]
+    mkProduct xs = N.P xs
+    extractFactor _ _ [] = Nothing
+    extractFactor ac b (c:cs)
+      | b == (N.CType (N.reifySOP (N.S [N.P [c]])))
+      = Just (mkProduct ((reverse ac) ++ cs), mkNumLitTy 1)
+    extractFactor ac b (((N.E c v)):cs)
+      | b == N.CType (N.reifySOP c)
+      = Just (mkProduct ((reverse ac) ++ cs), N.reifySOP (N.S [v]))
+    extractFactor ac b (c:cs) = extractFactor (c:ac) b cs
+    allSame [] = True
+    allSame (v:vs) = all (v ==) vs
 
-mergeCLog :: ExtraOp -> ExtraOp -> Maybe NormaliseResult
-mergeCLog (I i) _         | i < 2  = Nothing
-mergeCLog i     (Exp j k) | i == j = Just (k, Normalised)
-mergeCLog (I i) (I j)              = fmap (\r -> (I r, Normalised)) (clogBase i j)
-mergeCLog x     y                  = Just (CLog x y, Untouched)
+    x1 = N.CType (reifyEOP defs x)
+    (ySOP, ltCts) = runWriter (N.normaliseNat (reifyEOP defs y))
+    resultM = do
+      newProductsAndFactors <- sequence (fmap (extractFactor [] x1 . N.unP) (N.unS ySOP))
+      let (newProducts, factors) = unzip newProductsAndFactors
+      let factor = head factors
+      newLogOf <- toExtraOp defs (N.reifySOP (N.S newProducts))
+      let newLog = reifyEOP defs (logConstr x newLogOf)
+      let normalisedTy = mkTyConApp typeNatAddTyCon [newLog, factor]
+      if allSame (fmap N.CType factors) && Prelude.null ltCts
+        then toExtraOp defs normalisedTy
+        else Nothing
 
-mergeLog :: ExtraOp -> ExtraOp -> Maybe NormaliseResult
-mergeLog (I i) _          | i < 2   = Nothing
-mergeLog b     (Exp b' y) | b == b' = Just (y, Normalised)
-mergeLog (I i) (I j)                = fmap (\r -> (I r, Normalised)) (exactLogBase i j)
-mergeLog x     y                    = Just (Log x y, Untouched)
+    result = case resultM of
+              Just norm -> Just (norm, Normalised)
+              Nothing   -> Just (logConstr x y, Untouched)
+
+mergeFLog :: ExtraDefs -> ExtraOp -> ExtraOp -> Maybe NormaliseResult
+mergeFLog _ (I i) _         | i < 2  = Nothing
+mergeFLog _ i     (Exp j k) | i == j = Just (k, Normalised)
+mergeFLog _ (I i) (I j)              = fmap (\r -> (I r, Normalised)) (flogBase i j)
+mergeFLog defs x y                   = tryFactorLog FLog defs x y
+
+mergeCLog :: ExtraDefs -> ExtraOp -> ExtraOp -> Maybe NormaliseResult
+mergeCLog _ (I i) _         | i < 2  = Nothing
+mergeCLog _ i     (Exp j k) | i == j = Just (k, Normalised)
+mergeCLog _ (I i) (I j)              = fmap (\r -> (I r, Normalised)) (clogBase i j)
+mergeCLog defs x y                   = tryFactorLog CLog defs x y
+
+mergeLog :: ExtraDefs -> ExtraOp -> ExtraOp -> Maybe NormaliseResult
+mergeLog _ (I i) _          | i < 2   = Nothing
+mergeLog _ b     (Exp b' y) | b == b' = Just (y, Normalised)
+mergeLog _ (I i) (I j)                = fmap (\r -> (I r, Normalised)) (exactLogBase i j)
+mergeLog defs x y                     = tryFactorLog Log defs x y
 
 mergeGCD :: ExtraOp -> ExtraOp -> NormaliseResult
 mergeGCD (I i) (I j) = (I (gcd i j), Normalised)
