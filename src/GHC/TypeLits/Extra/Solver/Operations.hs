@@ -111,6 +111,7 @@ data ExtraDefs = ExtraDefs
   , gcdTyCon  :: TyCon
   , lcmTyCon  :: TyCon
   , ordTyCon  :: TyCon
+  , assertTC  :: TyCon
   }
 
 reifyEOP :: ExtraDefs -> ExtraOp -> Type
