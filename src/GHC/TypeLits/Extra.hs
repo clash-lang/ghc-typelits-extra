@@ -133,7 +133,7 @@ instance (KnownNat x, KnownNat y) => KnownNat2 $(nameToSymbol ''Min) x y where
 --
 -- Note that additional equations are provided by the type-checker plugin solver
 -- "GHC.TypeLits.Extra.Solver".
-type family Div (x :: Nat) (y :: Nat) :: Nat where
+type family Div (dividend :: Nat) (divisor :: Nat) :: Nat where
   Div x 1 = x
 
 instance (KnownNat x, KnownNat y, 1 <= y) => KnownNat2 $(nameToSymbol ''Div) x y where
