@@ -159,11 +159,11 @@ instance (KnownNat x, KnownNat y, 1 <= y) => KnownNat2 $(nameToSymbol ''Mod) x y
 type DivMod n d = '(Div n d, Mod n d)
 
 -- | Type-level equivalent of <https://hackage.haskell.org/package/base-4.17.0.0/docs/GHC-Integer-Logarithms.html#v:integerLogBase-35- integerLogBase#>
--- .i.e. the exact integer equivalent to "@'floor' ('logBase' x y)@"
+-- .i.e. the exact integer equivalent to "@'floor' ('logBase' base value)@"
 --
 -- Note that additional equations are provided by the type-checker plugin solver
 -- "GHC.TypeLits.Extra.Solver".
-type family FLog (x :: Nat) (y :: Nat) :: Nat where
+type family FLog (base :: Nat) (value :: Nat) :: Nat where
   FLog 2 1 = 0 -- Additional equations are provided by the custom solver
 
 instance (KnownNat x, KnownNat y, 2 <= x, 1 <= y) => KnownNat2 $(nameToSymbol ''FLog) x y where
@@ -174,11 +174,11 @@ instance (KnownNat x, KnownNat y, 2 <= x, 1 <= y) => KnownNat2 $(nameToSymbol ''
 #endif
 
 -- | Type-level equivalent of /the ceiling of/ <https://hackage.haskell.org/package/base-4.17.0.0/docs/GHC-Integer-Logarithms.html#v:integerLogBase-35- integerLogBase#>
--- .i.e. the exact integer equivalent to "@'ceiling' ('logBase' x y)@"
+-- .i.e. the exact integer equivalent to "@'ceiling' ('logBase' base value)@"
 --
 -- Note that additional equations are provided by the type-checker plugin solver
 -- "GHC.TypeLits.Extra.Solver".
-type family CLog (x :: Nat) (y :: Nat) :: Nat where
+type family CLog (base :: Nat) (value :: Nat) :: Nat where
   CLog 2 1 = 0 -- Additional equations are provided by the custom solver
 
 #if MIN_VERSION_ghc(9,4,0)
@@ -199,16 +199,16 @@ instance (KnownNat x, KnownNat y, 2 <= x, 1 <= y) => KnownNat2 $(nameToSymbol ''
 -- where the operation only reduces when:
 --
 -- @
--- 'FLog' b x ~ 'CLog' b x
+-- 'FLog' base value ~ 'CLog' base value
 -- @
 --
 -- Additionally, the following property holds for 'Log':
 --
--- > (b ^ (Log b x)) ~ x
+-- > (base ^ (Log base value)) ~ value
 --
 -- Note that additional equations are provided by the type-checker plugin solver
 -- "GHC.TypeLits.Extra.Solver".
-type family Log (x :: Nat) (y :: Nat) :: Nat where
+type family Log (base :: Nat) (value :: Nat) :: Nat where
   Log 2 1 = 0 -- Additional equations are provided by the custom solver
 
 instance (KnownNat x, KnownNat y, FLog x y ~ CLog x y) => KnownNat2 $(nameToSymbol ''Log) x y where
