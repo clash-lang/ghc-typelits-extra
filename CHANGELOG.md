@@ -1,5 +1,8 @@
 # Changelog for the [`ghc-typelits-extra`](http://hackage.haskell.org/package/ghc-typelits-extra) package
 
+# 0.4.5 *February 20th 2023*
+* Support for GHC-9.6.0.20230210
+
 # 0.4.4 *October 21st 2022*
 * Add support for GHC 9.4
 
