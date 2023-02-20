@@ -222,6 +222,12 @@ testFail25Errors =
   ,"with ‘'True’"]
 
 testFail26Errors =
+#if __GLASGOW_HASKELL__ >= 906
+  ["Could not deduce ‘Max x y ~ n’"
+  ,"from the context: (x <=? n) ~ True"
+  ]
+#else
   ["Could not deduce (Max x y ~ n)"
   ,"from the context: (x <=? n) ~ 'True"
   ]
+#endif

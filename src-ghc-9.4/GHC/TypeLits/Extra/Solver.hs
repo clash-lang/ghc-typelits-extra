@@ -13,6 +13,7 @@ pragma to the header of your file
 
 -}
 
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE TupleSections #-}
 
 {-# OPTIONS_HADDOCK show-extensions #-}
@@ -39,7 +40,12 @@ import GHC.Core.Predicate (EqRel (NomEq), Pred (EqPred, IrredPred), classifyPred
 import GHC.Core.Reduction (Reduction(..))
 import GHC.Core.TyCon (TyCon)
 import GHC.Core.TyCo.Rep (Type (..), TyLit (..), UnivCoProvenance (PluginProv))
-import GHC.Core.Type (Kind, eqType, mkTyConApp, splitTyConApp_maybe, typeKind)
+import GHC.Core.Type (Kind, mkTyConApp, splitTyConApp_maybe, typeKind)
+#if MIN_VERSION_ghc(9,6,0)
+import GHC.Core.TyCo.Compare (eqType)
+#else
+import GHC.Core.Type (eqType)
+#endif
 import GHC.Data.FastString (fsLit)
 import GHC.Driver.Plugins (Plugin (..), defaultPlugin, purePlugin)
 import GHC.Tc.Plugin (TcPluginM, tcLookupTyCon, tcPluginTrace)
