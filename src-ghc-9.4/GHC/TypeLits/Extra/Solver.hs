@@ -51,8 +51,12 @@ import GHC.Driver.Plugins (Plugin (..), defaultPlugin, purePlugin)
 import GHC.Tc.Plugin (TcPluginM, tcLookupTyCon, tcPluginTrace)
 import GHC.Tc.Types (TcPlugin(..), TcPluginSolveResult (..), TcPluginRewriter, TcPluginRewriteResult (..))
 import GHC.Tc.Types.Constraint
-  (Ct, ctEvidence, ctEvPred, ctLoc, isWantedCt, cc_ev)
-import GHC.Tc.Types.Constraint (Ct (CQuantCan), qci_ev)
+  (Ct, ctEvidence, ctEvPred, ctLoc, isWantedCt)
+#if MIN_VERSION_ghc(9,8,0)
+import GHC.Tc.Types.Constraint (Ct (..), DictCt(..), EqCt(..), IrredCt(..), qci_ev)
+#else
+import GHC.Tc.Types.Constraint (Ct (CQuantCan), qci_ev, cc_ev)
+#endif
 import GHC.Tc.Types.Evidence (EvTerm, EvBindsVar, Role(..), evCast, evId)
 import GHC.Types.Name.Occurrence (mkTcOcc)
 import GHC.Types.Unique.FM (UniqFM, listToUFM)
@@ -289,7 +293,14 @@ createWantedFromNormalised defs sct = do
   ev <- newWanted (ctLoc ct) newPredTy
   let ctN = case ct of
               CQuantCan qc -> CQuantCan (qc { qci_ev = ev})
+#if MIN_VERSION_ghc(9,8,0)
+              CDictCan di     -> CDictCan (di { di_ev = ev})
+              CIrredCan ir    -> CIrredCan (ir { ir_ev = ev})
+              CEqCan eq       -> CEqCan (eq { eq_ev = ev})
+              CNonCanonical _ -> CNonCanonical ev
+#else
               ctX -> ctX { cc_ev = ev }
+#endif
   return ctN
 
 fromSolverConstraint :: SolverConstraint -> Ct
