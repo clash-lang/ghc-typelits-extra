@@ -223,6 +223,17 @@ test57
   -> Proxy True
 test57 _ _ = id
 
+test58a
+  :: 1 <= n
+  => Proxy n
+  -> Proxy n
+test58a = id
+
+test58b
+  :: Proxy (Max (n+2) 1)
+  -> Proxy (Max (n+2) 1)
+test58b = test58a
+
 main :: IO ()
 main = defaultMain tests
 

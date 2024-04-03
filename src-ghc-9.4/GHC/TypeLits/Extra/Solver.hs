@@ -29,7 +29,7 @@ import GHC.TcPluginM.Extra
   (evByFiat, lookupModule, lookupName, tracePlugin, newWanted)
 
 -- GHC API
-import GHC.Builtin.Names (eqPrimTyConKey, hasKey)
+import GHC.Builtin.Names (eqPrimTyConKey, hasKey, getUnique)
 import GHC.Builtin.Types (promotedTrueDataCon, promotedFalseDataCon)
 import GHC.Builtin.Types (boolTy, naturalTy, cTupleDataCon, cTupleTyCon)
 import GHC.Builtin.Types.Literals (typeNatTyCons)
@@ -289,7 +289,8 @@ createWantedFromNormalised defs sct = do
   let (ct, t1, t2) = extractCtSides sct
   newPredTy <- case splitTyConApp_maybe $ ctEvPred $ ctEvidence ct of
     Just (tc, [a, b, _, _]) | tc `hasKey` eqPrimTyConKey -> pure (mkTyConApp tc [a, b, t1, t2])
-    _ -> fail "Nothing"
+    Just (tc, [_, b]) | tc `hasKey` getUnique (assertTC defs) -> pure (mkTyConApp tc [t1,b])
+    _ -> error "Impossible: neither (<=?) nor Assert"
   ev <- newWanted (ctLoc ct) newPredTy
   let ctN = case ct of
               CQuantCan qc -> CQuantCan (qc { qci_ev = ev})
