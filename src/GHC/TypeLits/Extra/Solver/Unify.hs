@@ -11,6 +11,7 @@ module GHC.TypeLits.Extra.Solver.Unify
   ( ExtraDefs (..)
   , UnifyResult (..)
   , NormaliseResult
+  , toCType
   , normaliseNat
   , unifyExtra
   )
@@ -60,6 +61,8 @@ mergeNormResWith f x y = do
   (res, n3) <- f x' y'
   pure (res, n1 `mergeNormalised` n2 `mergeNormalised` n3)
 
+toCType :: Type -> ExtraOp
+toCType ty = C $ CType ty
 
 normaliseNat :: ExtraDefs -> Type -> MaybeT TcPluginM NormaliseResult
 normaliseNat defs ty | Just ty1 <- coreView ty = normaliseNat defs ty1
@@ -105,9 +108,9 @@ normaliseNat defs (TyConApp tc tys) = do
   normResults <- lift (sequence (runMaybeT . normaliseNat defs <$> tys))
   let anyNormalised = foldr mergeNormalised Untouched (snd <$> catMaybes normResults)
   let tys' = mergeExtraOp (zip normResults tys)
-  pure (C (CType (TyConApp tc tys')), anyNormalised)
+  pure (toCType $ TyConApp tc tys', anyNormalised)
 
-normaliseNat _ t = return (C (CType t), Untouched)
+normaliseNat _ t = return (toCType t, Untouched)
 
 -- | Result of comparing two 'SOP' terms, returning a potential substitution
 -- list under which the two terms are equal.

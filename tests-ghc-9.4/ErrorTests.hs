@@ -100,6 +100,9 @@ testFail26 = testFail26' (Proxy @4) (Proxy @6) (Proxy @6)
 testFail27 :: Proxy n -> Proxy (n + 2 <=? Max (n + 1) 1) -> Proxy True
 testFail27 _ = id
 
+testFail28 :: Proxy n -> Proxy (Mod n p <=? p) -> Proxy True
+testFail28 _ = id
+
 testFail1Errors =
   ["Expected: Proxy (GCD 6 8) -> Proxy 4"
   ,"  Actual: Proxy 4 -> Proxy 4"
@@ -231,3 +234,9 @@ testFail26Errors =
   ,"from the context: (x <=? n) ~ 'True"
   ]
 #endif
+
+testFail28Errors =
+  ["Couldn't match type ‘Data.Type.Ord.OrdCond"
+  ,"(CmpNat 1 p) True True False"
+  , "with ‘True’"
+  ]

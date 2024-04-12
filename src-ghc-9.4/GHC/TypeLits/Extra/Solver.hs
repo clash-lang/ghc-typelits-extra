@@ -32,14 +32,14 @@ import GHC.TcPluginM.Extra
 import GHC.Builtin.Names (eqPrimTyConKey, hasKey, getUnique)
 import GHC.Builtin.Types (promotedTrueDataCon, promotedFalseDataCon)
 import GHC.Builtin.Types (boolTy, naturalTy, cTupleDataCon, cTupleTyCon)
-import GHC.Builtin.Types.Literals (typeNatDivTyCon, typeNatModTyCon, typeNatCmpTyCon)
+import GHC.Builtin.Types.Literals (typeNatAddTyCon, typeNatDivTyCon, typeNatModTyCon, typeNatCmpTyCon)
 import GHC.Core.Coercion (mkUnivCo)
 import GHC.Core.DataCon (dataConWrapId)
 import GHC.Core.Predicate (EqRel (NomEq), Pred (EqPred, IrredPred), classifyPredType)
 import GHC.Core.Reduction (Reduction(..))
 import GHC.Core.TyCon (TyCon)
 import GHC.Core.TyCo.Rep (Type (..), TyLit (..), UnivCoProvenance (PluginProv))
-import GHC.Core.Type (Kind, mkTyConApp, splitTyConApp_maybe, typeKind)
+import GHC.Core.Type (Kind, mkTyConApp, mkNumLitTy, splitTyConApp_maybe, typeKind)
 #if MIN_VERSION_ghc(9,6,0)
 import GHC.Core.TyCo.Compare (eqType)
 #else
@@ -181,7 +181,13 @@ simplifyExtra defs eqs = tcPluginTrace "simplifyExtra" (ppr eqs) >> simples [] [
           | otherwise     -> return  (Impossible eq)
         (p, Max x y)
           | b && (p == x || p == y) -> simples (((,) <$> evMagic ct <*> pure ct):evs) news eqs'
-
+        -- transform:  Mod n p <= q
+        -- to:         p <= q + 1, 1 <= p
+        (Mod _ p, q) | isWantedCt ct -> do
+          let succQ = toCType $ TyConApp typeNatAddTyCon [reifyEOP defs q, mkNumLitTy 1]
+          modCt <- createWantedFromNormalised defs (NatInequality ct p succQ b norm)
+          gteOneCt <- createWantedFromNormalised defs (NatInequality ct (I 1) p b norm)
+          simples (((,) <$> evMagic ct <*> pure ct):evs) (modCt:gteOneCt:news) eqs'
         -- transform:  q ~ Max x y => (p <=? q ~ True)
         -- to:         (p <=? Max x y) ~ True
         -- and try to solve that along with the rest of the eqs'

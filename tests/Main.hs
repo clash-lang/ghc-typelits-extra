@@ -234,6 +234,20 @@ test58b
   -> Proxy (Max (n+2) 1)
 test58b = test58a
 
+test59
+  :: Proxy n
+  -> Proxy p
+  -> Proxy (Mod n (p + 1) <=? p)
+  -> Proxy True
+test59 _ _ x = x
+
+test60
+  :: Proxy n
+  -> Proxy p
+  -> Proxy (Mod n (3 * p + 5) <=? (4 + p * 3))
+  -> Proxy True
+test60 _ _ x = x
+
 main :: IO ()
 main = defaultMain tests
 
@@ -411,6 +425,12 @@ tests = testGroup "ghc-typelits-natnormalise"
     , testCase "forall n p . n + 1 <= Max (n + p + 1) p" $
       show (test57 Proxy Proxy Proxy) @?=
       "Proxy"
+    , testCase "forall n p . Mod n (p + 1) <= p" $
+      show (test59 Proxy Proxy Proxy) @?=
+      "Proxy"
+    , testCase "forall n p . Mod n (3 * p + 5) <= (4 + p * 3)" $
+      show (test60 Proxy Proxy Proxy) @?=
+      "Proxy"
     ]
   , testGroup "errors"
     [ testCase "GCD 6 8 /~ 4" $ testFail1 `throws` testFail1Errors
@@ -440,6 +460,7 @@ tests = testGroup "ghc-typelits-natnormalise"
     , testCase "(x+1 <=? Max x y) /~ True" $ testFail25 `throws` testFail25Errors
     , testCase "(x <= n) /=> (Max x y) ~ n" $ testFail26 `throws` testFail26Errors
     , testCase "n + 2 <=? Max (n + 1) 1 /~ True" $ testFail27 `throws` testFail27Errors
+    , testCase "Mod n p <=? p" $ testFail28 `throws` testFail28Errors
     ]
   ]
 

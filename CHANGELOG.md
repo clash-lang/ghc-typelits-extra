@@ -2,6 +2,7 @@
 
 # Unreleased
 * Fix faulty lookup for `Mod` and `Div` in GHC >= 9.2
+* Reduce `Mod n p <= q` to `p <= q + 1` and `1 <= p`
 
 # 0.4.7
 * Fix Plugin silently fails when normalizing <= in GHC 9.4+ [#50](https://github.com/clash-lang/ghc-typelits-extra/issues/50)

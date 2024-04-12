@@ -42,7 +42,7 @@ import GHC.Builtin.Types (boolTy, naturalTy)
 #else
 import GHC.Builtin.Types (typeNatKind)
 #endif
-import GHC.Builtin.Types.Literals (typeNatDivTyCon, typeNatModTyCon)
+import GHC.Builtin.Types.Literals (typeNatAddTyCon, typeNatDivTyCon, typeNatModTyCon)
 #if MIN_VERSION_ghc(9,2,0)
 import GHC.Builtin.Types.Literals (typeNatCmpTyCon)
 #else
@@ -50,7 +50,7 @@ import GHC.Builtin.Types.Literals (typeNatLeqTyCon)
 #endif
 import GHC.Core.Predicate (EqRel (NomEq), Pred (EqPred), classifyPredType)
 import GHC.Core.TyCo.Rep (Type (..))
-import GHC.Core.Type (Kind, eqType, mkTyConApp, splitTyConApp_maybe, typeKind)
+import GHC.Core.Type (Kind, eqType, mkNumLitTy, mkTyConApp, splitTyConApp_maybe, typeKind)
 import GHC.Data.FastString (fsLit)
 import GHC.Driver.Plugins (Plugin (..), defaultPlugin, purePlugin)
 import GHC.Tc.Plugin (TcPluginM, tcLookupTyCon, tcPluginTrace)
@@ -77,10 +77,10 @@ import PrelNames  (eqPrimTyConKey, hasKey)
 import TcEvidence (EvTerm)
 import TcPluginM  (TcPluginM, tcLookupTyCon, tcPluginTrace)
 import TcRnTypes  (TcPlugin(..), TcPluginResult (..))
-import Type       (Kind, eqType, mkTyConApp, splitTyConApp_maybe)
+import Type       (Kind, eqType, mkNumLitTy, mkTyConApp, splitTyConApp_maybe)
 import TyCoRep    (Type (..))
 import TysWiredIn (typeNatKind, promotedTrueDataCon, promotedFalseDataCon)
-import TcTypeNats (typeNatLeqTyCon)
+import TcTypeNats (typeNatAddTyCon, typeNatLeqTyCon)
 #if MIN_VERSION_ghc(8,4,0)
 import TcTypeNats (typeNatDivTyCon, typeNatModTyCon)
 #else
@@ -209,7 +209,13 @@ simplifyExtra defs eqs = tcPluginTrace "simplifyExtra" (ppr eqs) >> simples [] [
           | otherwise     -> return  (Impossible eq)
         (p, Max x y)
           | b && (p == x || p == y) -> simples (((,) <$> evMagic ct <*> pure ct):evs) news eqs'
-
+        -- transform:  Mod n p <= q
+        -- to:         p <= q + 1, 1 <= p
+        (Mod _ p, q) | isWantedCt ct -> do
+          let succQ = toCType $ TyConApp typeNatAddTyCon [reifyEOP defs q, mkNumLitTy 1]
+          modCt <- createWantedFromNormalised defs (NatInequality ct p succQ b norm)
+          gteOneCt <- createWantedFromNormalised defs (NatInequality ct (I 1) p b norm)
+          simples (((,) <$> evMagic ct <*> pure ct):evs) (modCt:gteOneCt:news) eqs'
         -- transform:  q ~ Max x y => (p <=? q ~ True)
         -- to:         (p <=? Max x y) ~ True
         -- and try to solve that along with the rest of the eqs'

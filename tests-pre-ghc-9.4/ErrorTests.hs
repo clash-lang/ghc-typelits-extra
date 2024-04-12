@@ -100,6 +100,9 @@ testFail26 = testFail26' (Proxy @4) (Proxy @6) (Proxy @6)
 testFail27 :: Proxy n -> Proxy (n + 2 <=? Max (n + 1) 1) -> Proxy True
 testFail27 _ = id
 
+testFail28 :: Proxy n -> Proxy (Mod n p <=? p) -> Proxy True
+testFail28 _ = id
+
 #if __GLASGOW_HASKELL__ >= 900
 testFail1Errors =
   ["Expected: Proxy (GCD 6 8) -> Proxy 4"
@@ -345,3 +348,13 @@ testFail26Errors =
   ["Could not deduce: Max x y ~ n"
   ,"from the context: (x <=? n) ~ 'True"
   ]
+
+testFail28Errors =
+#if __GLASGOW_HASKELL__ >= 902
+  ["Couldn't match type ‘Data.Type.Ord.OrdCond"
+  ,"(CmpNat 1 p) True True False"
+  , "with ‘True’"
+  ]
+#else
+  ["Couldn't match type ‘1 <=? p’ with ‘'True’"]
+#endif
