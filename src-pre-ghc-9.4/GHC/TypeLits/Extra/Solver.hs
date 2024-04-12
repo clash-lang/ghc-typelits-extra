@@ -42,7 +42,7 @@ import GHC.Builtin.Types (boolTy, naturalTy)
 #else
 import GHC.Builtin.Types (typeNatKind)
 #endif
-import GHC.Builtin.Types.Literals (typeNatTyCons)
+import GHC.Builtin.Types.Literals (typeNatDivTyCon, typeNatModTyCon)
 #if MIN_VERSION_ghc(9,2,0)
 import GHC.Builtin.Types.Literals (typeNatCmpTyCon)
 #else
@@ -82,7 +82,7 @@ import TyCoRep    (Type (..))
 import TysWiredIn (typeNatKind, promotedTrueDataCon, promotedFalseDataCon)
 import TcTypeNats (typeNatLeqTyCon)
 #if MIN_VERSION_ghc(8,4,0)
-import TcTypeNats (typeNatTyCons)
+import TcTypeNats (typeNatDivTyCon, typeNatModTyCon)
 #else
 import TcPluginM  (zonkCt)
 #endif
@@ -313,8 +313,8 @@ lookupExtraDefs = do
     ExtraDefs <$> look md "Max"
               <*> look md "Min"
 #if MIN_VERSION_ghc(8,4,0)
-              <*> pure (typeNatTyCons !! 5)
-              <*> pure (typeNatTyCons !! 6)
+              <*> pure typeNatDivTyCon
+              <*> pure typeNatModTyCon
 #else
               <*> look md "Div"
               <*> look md "Mod"

@@ -32,8 +32,7 @@ import GHC.TcPluginM.Extra
 import GHC.Builtin.Names (eqPrimTyConKey, hasKey, getUnique)
 import GHC.Builtin.Types (promotedTrueDataCon, promotedFalseDataCon)
 import GHC.Builtin.Types (boolTy, naturalTy, cTupleDataCon, cTupleTyCon)
-import GHC.Builtin.Types.Literals (typeNatTyCons)
-import GHC.Builtin.Types.Literals (typeNatCmpTyCon)
+import GHC.Builtin.Types.Literals (typeNatDivTyCon, typeNatModTyCon, typeNatCmpTyCon)
 import GHC.Core.Coercion (mkUnivCo)
 import GHC.Core.DataCon (dataConWrapId)
 import GHC.Core.Predicate (EqRel (NomEq), Pred (EqPred, IrredPred), classifyPredType)
@@ -315,8 +314,8 @@ lookupExtraDefs = do
     md2 <- lookupModule typeErrModule basePackage
     ExtraDefs <$> look md "Max"
               <*> look md "Min"
-              <*> pure (typeNatTyCons !! 5)
-              <*> pure (typeNatTyCons !! 6)
+              <*> pure typeNatDivTyCon
+              <*> pure typeNatModTyCon
               <*> look md "FLog"
               <*> look md "CLog"
               <*> look md "Log"
