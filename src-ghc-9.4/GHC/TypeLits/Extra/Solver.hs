@@ -15,6 +15,7 @@ pragma to the header of your file
 
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TemplateHaskellQuotes #-}
 
 {-# OPTIONS_HADDOCK show-extensions #-}
 
@@ -25,8 +26,9 @@ where
 -- external
 import Control.Monad.Trans.Maybe (MaybeT (..))
 import Data.Maybe (catMaybes)
-import GHC.TcPluginM.Extra
-  (evByFiat, lookupModule, lookupName, tracePlugin, newWanted)
+import GHC.TcPluginM.Extra (evByFiat, tracePlugin, newWanted)
+import qualified Data.Type.Ord
+import qualified GHC.TypeError
 
 -- GHC API
 import GHC.Builtin.Names (eqPrimTyConKey, hasKey, getUnique)
@@ -45,10 +47,12 @@ import GHC.Core.TyCo.Compare (eqType)
 #else
 import GHC.Core.Type (eqType)
 #endif
-import GHC.Data.FastString (fsLit)
+import GHC.Data.IOEnv (getEnv)
+import GHC.Driver.Env (hsc_NC)
 import GHC.Driver.Plugins (Plugin (..), defaultPlugin, purePlugin)
-import GHC.Tc.Plugin (TcPluginM, tcLookupTyCon, tcPluginTrace)
-import GHC.Tc.Types (TcPlugin(..), TcPluginSolveResult (..), TcPluginRewriter, TcPluginRewriteResult (..))
+import GHC.Plugins (thNameToGhcNameIO)
+import GHC.Tc.Plugin (TcPluginM, tcLookupTyCon, tcPluginTrace, tcPluginIO, unsafeTcPluginTcM)
+import GHC.Tc.Types (TcPlugin(..), TcPluginSolveResult (..), TcPluginRewriter, TcPluginRewriteResult (..), Env (env_top))
 import GHC.Tc.Types.Constraint
   (Ct, ctEvidence, ctEvPred, ctLoc, isWantedCt)
 #if MIN_VERSION_ghc(9,8,0)
@@ -57,14 +61,17 @@ import GHC.Tc.Types.Constraint (Ct (..), DictCt(..), EqCt(..), IrredCt(..), qci_
 import GHC.Tc.Types.Constraint (Ct (CQuantCan), qci_ev, cc_ev)
 #endif
 import GHC.Tc.Types.Evidence (EvTerm, EvBindsVar, Role(..), evCast, evId)
-import GHC.Types.Name.Occurrence (mkTcOcc)
 import GHC.Types.Unique.FM (UniqFM, listToUFM)
-import GHC.Unit.Module (mkModuleName)
 import GHC.Utils.Outputable (Outputable (..), (<+>), ($$), text)
+import GHC (Name)
+
+-- template-haskell
+import qualified Language.Haskell.TH as TH
 
 -- internal
 import GHC.TypeLits.Extra.Solver.Operations
 import GHC.TypeLits.Extra.Solver.Unify
+import GHC.TypeLits.Extra
 
 -- | A solver implement as a type-checker plugin for:
 --
@@ -309,27 +316,25 @@ fromSolverConstraint (NatInequality ct _ _ _ _) = ct
 
 lookupExtraDefs :: TcPluginM ExtraDefs
 lookupExtraDefs = do
-    md <- lookupModule myModule myPackage
-    md1 <- lookupModule ordModule basePackage
-    md2 <- lookupModule typeErrModule basePackage
-    ExtraDefs <$> look md "Max"
-              <*> look md "Min"
+    ExtraDefs <$> look ''GHC.TypeLits.Extra.Max
+              <*> look ''GHC.TypeLits.Extra.Min
               <*> pure typeNatDivTyCon
               <*> pure typeNatModTyCon
-              <*> look md "FLog"
-              <*> look md "CLog"
-              <*> look md "Log"
-              <*> look md "GCD"
-              <*> look md "LCM"
-              <*> look md1 "OrdCond"
-              <*> look md2 "Assert"
+              <*> look ''GHC.TypeLits.Extra.FLog
+              <*> look ''GHC.TypeLits.Extra.CLog
+              <*> look ''GHC.TypeLits.Extra.Log
+              <*> look ''GHC.TypeLits.Extra.GCD
+              <*> look ''GHC.TypeLits.Extra.LCM
+              <*> look ''Data.Type.Ord.OrdCond
+              <*> look ''GHC.TypeError.Assert
   where
-    look md s = tcLookupTyCon =<< lookupName md (mkTcOcc s)
-    myModule  = mkModuleName "GHC.TypeLits.Extra"
-    myPackage = fsLit "ghc-typelits-extra"
-    ordModule   = mkModuleName "Data.Type.Ord"
-    basePackage = fsLit "base"
-    typeErrModule = mkModuleName "GHC.TypeError"
+    look nm = tcLookupTyCon =<< lookupTHName nm
+
+lookupTHName :: TH.Name -> TcPluginM Name
+lookupTHName th = do
+    nc <- unsafeTcPluginTcM (hsc_NC . env_top <$> getEnv)
+    res <- tcPluginIO $ thNameToGhcNameIO nc th
+    maybe (fail $ "Failed to lookup " ++ show th) return res
 
 -- Utils
 evMagic :: Ct -> Maybe EvTerm
