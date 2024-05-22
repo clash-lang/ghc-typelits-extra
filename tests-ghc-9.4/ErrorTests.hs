@@ -212,14 +212,26 @@ testFail23Errors =
   ["Couldn't match type ‘'True’ with ‘'False’"]
 
 testFail24Errors =
+#if __GLASGOW_HASKELL__ >= 910
+  ["Couldn't match type ‘ghc-internal-9.1001.0:GHC.Internal.Data.Type.Ord.OrdCond"
+  ,"(CmpNat z (Max x y)) 'True 'True 'False’"
+  ,"with ‘'True’"]
+#else
   ["Couldn't match type ‘Data.Type.Ord.OrdCond"
   ,"(CmpNat z (Max x y)) 'True 'True 'False’"
   ,"with ‘'True’"]
+#endif
 
 testFail25Errors =
+#if __GLASGOW_HASKELL__ >= 910
+  ["Couldn't match type ‘ghc-internal-9.1001.0:GHC.Internal.Data.Type.Ord.OrdCond"
+  ,"(CmpNat (x + 1) (Max x y)) 'True 'True 'False’"
+  ,"with ‘'True’"]
+#else
   ["Couldn't match type ‘Data.Type.Ord.OrdCond"
   ,"(CmpNat (x + 1) (Max x y)) 'True 'True 'False’"
   ,"with ‘'True’"]
+#endif
 
 testFail26Errors =
 #if __GLASGOW_HASKELL__ >= 906
