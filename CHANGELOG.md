@@ -1,10 +1,9 @@
 # Changelog for the [`ghc-typelits-extra`](http://hackage.haskell.org/package/ghc-typelits-extra) package
 
-# Unreleased
-* Fix faulty lookup for `Mod` and `Div` in GHC >= 9.2
-
-# 0.4.7
+# 0.4.7 *May 22nd, 2024*
+* Add support for GHC 9.10.1
 * Fix Plugin silently fails when normalizing <= in GHC 9.4+ [#50](https://github.com/clash-lang/ghc-typelits-extra/issues/50)
+* Fix faulty lookup for `Mod` and `Div` in GHC >= 9.2
 
 # 0.4.6 *October 10th 2023*
 * Support for GHC-9.8.1
