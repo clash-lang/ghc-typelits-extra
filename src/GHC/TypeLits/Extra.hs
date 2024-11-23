@@ -141,7 +141,7 @@ instance (KnownNat x, KnownNat y, 1 <= y) => KnownNat2 $(nameToSymbol ''Div) x y
 #endif
 
 -- | A variant of 'Div' that rounds up instead of down
-type DivRU n d = Div (n + (d - 1)) d
+type DivRU n d = 1 + Div (n - 1) d
 
 #if !MIN_VERSION_ghc(8,4,0)
 -- | Type-level 'mod'
