@@ -234,11 +234,18 @@ test58b
   -> Proxy (Max (n+2) 1)
 test58b = test58a
 
+test59
+  :: SNat n
+  -> SNat p
+  -> Proxy (1 <=? DivRU (n + 1) (p + 1))
+  -> Proxy True
+test59 SNat SNat = id
+
 main :: IO ()
 main = defaultMain tests
 
 tests :: TestTree
-tests = testGroup "ghc-typelits-natnormalise"
+tests = testGroup "ghc-typelits-extra"
   [ testGroup "Basic functionality"
     [ testCase "GCD 6 8 ~ 2" $
       show (test1 Proxy) @?=
