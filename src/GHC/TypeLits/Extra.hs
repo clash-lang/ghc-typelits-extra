@@ -112,9 +112,21 @@ intToNumber x = smallInteger x
 #endif
 {-# INLINE intToNumber #-}
 
+-- Note [Reflexive equations]
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~
+--
+-- Both Min and Max include equations for the reflexive case for GHC < 8.6.
+-- This is because with versions after 8.6 the ghc-typelits-knownnat solver is
+-- smart enough to solve in the presence of If applications using the KnownBool
+-- solver.
+--
+
 -- | Type-level 'max'
 type family Max (x :: Nat) (y :: Nat) :: Nat where
+#if !MIN_VERSION_ghc(8,6,0)
+  -- See Note [Reflexive equations] above
   Max n n = n
+#endif
   Max x y = If (x <=? y) y x
 
 instance (KnownNat x, KnownNat y) => KnownNat2 $(nameToSymbol ''Max) x y where
@@ -122,7 +134,10 @@ instance (KnownNat x, KnownNat y) => KnownNat2 $(nameToSymbol ''Max) x y where
 
 -- | Type-level 'min'
 type family Min (x :: Nat) (y :: Nat) :: Nat where
+#if !MIN_VERSION_ghc(8,6,0)
+  -- See Note [Reflexive equations] above
   Min n n = n
+#endif
   Min x y = If (x <=? y) x y
 
 instance (KnownNat x, KnownNat y) => KnownNat2 $(nameToSymbol ''Min) x y where
