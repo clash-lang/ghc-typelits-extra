@@ -327,6 +327,7 @@ lookupExtraDefs = do
               <*> look ''GHC.TypeLits.Extra.LCM
               <*> look ''Data.Type.Ord.OrdCond
               <*> look ''GHC.TypeError.Assert
+              <*> look ''GHC.TypeLits.Extra.CLogWZ
   where
     look nm = tcLookupTyCon =<< lookupTHName nm
 

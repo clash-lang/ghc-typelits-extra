@@ -331,6 +331,7 @@ lookupExtraDefs = do
               <*> pure typeNatLeqTyCon
               <*> pure typeNatLeqTyCon
 #endif
+              <*> look md "CLogWZ"
   where
     look md s = tcLookupTyCon =<< lookupName md (mkTcOcc s)
     myModule  = mkModuleName "GHC.TypeLits.Extra"

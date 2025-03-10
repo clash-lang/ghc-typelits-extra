@@ -234,6 +234,36 @@ test58b
   -> Proxy (Max (n+2) 1)
 test58b = test58a
 
+test59 :: Proxy (CLogWZ 3 10 9) -> Proxy 3
+test59 = id
+
+test60 :: Proxy ((CLogWZ 3 10 3) + x) -> Proxy (x + (CLogWZ 2 7 8))
+test60 = id
+
+test61 :: Proxy (CLogWZ x (x^y) 8) -> Proxy y
+test61 = id
+
+test62 :: Integer
+test62 = natVal (Proxy :: Proxy (CLogWZ 6 8 3))
+
+test63 :: Integer
+test63 = natVal (Proxy :: Proxy (CLogWZ 3 10 9))
+
+test64 :: Integer
+test64 = natVal (Proxy :: Proxy ((CLogWZ 2 4 11) * (3 ^ (CLogWZ 2 4 8))))
+
+test65 :: Integer
+test65 = natVal (Proxy :: Proxy (Max (CLogWZ 2 4 8) (CLogWZ 4 20 5)))
+
+test66 :: Proxy (CLogWZ 3 0 8) -> Proxy 8
+test66 = id
+
+test67 :: Proxy (CLogWZ 2 0 x) -> Proxy x
+test67 = id
+
+test68 :: Proxy (CLogWZ 5 0 0) -> Proxy 0
+test68 = id
+
 main :: IO ()
 main = defaultMain tests
 
@@ -410,6 +440,36 @@ tests = testGroup "ghc-typelits-natnormalise"
       "Proxy"
     , testCase "forall n p . n + 1 <= Max (n + p + 1) p" $
       show (test57 Proxy Proxy Proxy) @?=
+      "Proxy"
+    , testCase "CLogWZ 3 10 9 ~ 3" $
+      show (test59 Proxy) @?=
+      "Proxy"
+    , testCase "forall x . CLogWZ 3 10 3 + x ~ x + CLogWZ 2 7 8" $
+      show (test60 Proxy) @?=
+      "Proxy"
+    , testCase "forall x>1 . CLogWZ x (x^y) 8 ~ y" $
+      show (test61 Proxy) @?=
+      "Proxy"
+    , testCase "KnownNat (CLogWZ 6 8 3) ~ 2" $
+      show test62 @?=
+      "2"
+    , testCase "KnownNat (CLogWZ 3 10 9) ~ 3" $
+      show test63 @?=
+      "3"
+    , testCase "KnownNat ((CLogWZ 2 4 11) * (3 ^ (CLogWZ 2 4 8)))) ~ 18" $
+      show test64 @?=
+      "18"
+    , testCase "KnownNat (Max (CLogWZ 2 4 8) (CLogWZ 4 20 5)) ~ 3" $
+      show test65 @?=
+      "3"
+    , testCase "CLogWZ 3 0 8 ~ 8" $
+      show (test66 Proxy) @?=
+      "Proxy"
+    , testCase "forall x. CLogWZ 2 0 x ~ x" $
+      show (test67 Proxy) @?=
+      "Proxy"
+    , testCase "CLogWZ 5 0 0 ~ 0" $
+      show (test68 Proxy) @?=
       "Proxy"
     ]
   , testGroup "errors"

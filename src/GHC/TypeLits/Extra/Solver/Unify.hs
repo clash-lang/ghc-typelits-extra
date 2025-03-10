@@ -97,6 +97,14 @@ normaliseNat defs (TyConApp tc [x,y])
                                              (normaliseNat defs x)
                                              (normaliseNat defs y)
 
+normaliseNat defs (TyConApp tc [x,y,z])
+  | tc == clogWZTyCon defs = do
+      (x', n1) <- normaliseNat defs x
+      (y', n2) <- normaliseNat defs y
+      (z', n3) <- normaliseNat defs z
+      (res, n4) <- MaybeT $ return $ mergeCLogWZ x' y' z'
+      pure (res, foldl mergeNormalised Untouched [n1,n2,n3,n4])
+
 normaliseNat defs (TyConApp tc tys) = do
   let mergeExtraOp [] = []
       mergeExtraOp ((Just (op, Normalised), _):xs) = reifyEOP defs op:mergeExtraOp xs
@@ -162,6 +170,10 @@ fvOP (Log x y)  = fvOP x `unionUniqSets` fvOP y
 fvOP (GCD x y)  = fvOP x `unionUniqSets` fvOP y
 fvOP (LCM x y)  = fvOP x `unionUniqSets` fvOP y
 fvOP (Exp x y)  = fvOP x `unionUniqSets` fvOP y
+fvOP (CLogWZ x y z) =
+  fvOP x `unionUniqSets`
+  fvOP y `unionUniqSets`
+  fvOP z
 
 eqFV :: ExtraOp -> ExtraOp -> Bool
 eqFV = (==) `on` fvOP
@@ -180,3 +192,4 @@ containsConstants (Log x y)  = containsConstants x || containsConstants y
 containsConstants (GCD x y)  = containsConstants x || containsConstants y
 containsConstants (LCM x y)  = containsConstants x || containsConstants y
 containsConstants (Exp x y)  = containsConstants x || containsConstants y
+containsConstants (CLogWZ x y z) = or $ map containsConstants [x, y, z]

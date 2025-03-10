@@ -70,6 +70,7 @@ module GHC.TypeLits.Extra
     -- ** Logarithm
   , FLog
   , CLog
+  , CLogWZ
     -- *** Exact logarithm
   , Log
     -- Numeric
@@ -101,7 +102,8 @@ import GHC.TypeLits           as N
 #if MIN_VERSION_ghc(8,4,0)
 import GHC.TypeLits           (Div, Mod)
 #endif
-import GHC.TypeLits.KnownNat  (KnownNat2 (..), SNatKn (..), nameToSymbol)
+import GHC.TypeLits.KnownNat  (KnownNat2 (..), KnownNat3 (..)
+                              ,SNatKn (..), nameToSymbol)
 
 #if MIN_VERSION_ghc(8,2,0)
 intToNumber :: Int# -> Natural
@@ -194,6 +196,31 @@ instance (KnownNat x, KnownNat y, 2 <= x, 1 <= y) => KnownNat2 $(nameToSymbol ''
                     1 -> SNatKn 0
                     _ | isTrue# (z1 ==# z2) -> SNatKn (intToNumber (z1 +# 1#))
                       | otherwise           -> SNatKn (intToNumber z1)
+
+-- | Extended version of 'CLog', which is also well-defined in case the non-base argument is zero. The additional third argument argument is returned in this particular case. dThe particular value is chosen the user.
+--
+-- Note that additional equations are provided by the type-checker plugin solver
+-- "GHC.TypeLits.Extra.Solver".
+type family CLogWZ (base :: Nat) (value :: Nat) (ifzero :: Nat) :: Nat where
+  CLogWZ 2 0 z = z
+  CLogWZ 2 1 _ = 0 -- Additional equations are provided by the custom solver
+
+#if MIN_VERSION_ghc(9,4,0)
+instance (KnownNat x, KnownNat y, KnownNat z, (2 <= x) ~ (() :: Constraint)) => KnownNat3 $(nameToSymbol ''CLogWZ) x y z where
+#else
+instance (KnownNat x, KnownNat y, KnownNat z, 2 <= x) => KnownNat3 $(nameToSymbol ''CLogWZ) x y z where
+#endif
+  natSing3 = let x  = natVal (Proxy @x)
+                 y  = natVal (Proxy @y)
+                 z  = natVal (Proxy @z)
+                 z1 = integerLogBase# x y
+                 z2 = integerLogBase# x (y-1)
+             in  case y of
+                    0 -> SNatKn $ fromInteger z
+                    1 -> SNatKn 0
+                    _ | isTrue# (z1 ==# z2) -> SNatKn (intToNumber (z1 +# 1#))
+                      | otherwise           -> SNatKn (intToNumber z1)
+
 
 -- | Type-level equivalent of <https://hackage.haskell.org/package/base-4.17.0.0/docs/GHC-Integer-Logarithms.html#v:integerLogBase-35- integerLogBase#>
 -- where the operation only reduces when:

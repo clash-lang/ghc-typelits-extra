@@ -21,6 +21,7 @@ module GHC.TypeLits.Extra.Solver.Operations
   , mergeMod
   , mergeFLog
   , mergeCLog
+  , mergeCLogWZ
   , mergeLog
   , mergeGCD
   , mergeLCM
@@ -83,6 +84,7 @@ data ExtraOp
   | GCD  ExtraOp ExtraOp
   | LCM  ExtraOp ExtraOp
   | Exp  ExtraOp ExtraOp
+  | CLogWZ ExtraOp ExtraOp ExtraOp
   deriving Eq
 
 instance Outputable ExtraOp where
@@ -99,6 +101,12 @@ instance Outputable ExtraOp where
   ppr (GCD x y)  = text "GCD (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
   ppr (LCM x y)  = text "GCD (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
   ppr (Exp x y)  = text "Exp (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
+  ppr (CLogWZ x y z) =
+    text "CLogWZ "
+      <+> text "(" <+> ppr x
+      <+> text "," <+> ppr y
+      <+> text "," <+> ppr z
+      <+> text ")"
 
 data ExtraDefs = ExtraDefs
   { maxTyCon  :: TyCon
@@ -112,6 +120,7 @@ data ExtraDefs = ExtraDefs
   , lcmTyCon  :: TyCon
   , ordTyCon  :: TyCon
   , assertTC  :: TyCon
+  , clogWZTyCon :: TyCon
   }
 
 reifyEOP :: ExtraDefs -> ExtraOp -> Type
@@ -128,6 +137,8 @@ reifyEOP defs (Mod x y)  = mkTyConApp (modTyCon defs)  [reifyEOP defs x
                                                        ,reifyEOP defs y]
 reifyEOP defs (CLog x y) = mkTyConApp (clogTyCon defs) [reifyEOP defs x
                                                        ,reifyEOP defs y]
+reifyEOP defs (CLogWZ x y z) = mkTyConApp (clogTyCon defs)
+  $ reifyEOP defs <$> [x, y, z]
 reifyEOP defs (FLog x y) = mkTyConApp (flogTyCon defs) [reifyEOP defs x
                                                        ,reifyEOP defs y]
 reifyEOP defs (Log x y)  = mkTyConApp (logTyCon defs)  [reifyEOP defs x
@@ -194,6 +205,14 @@ mergeCLog (I i) _         | i < 2  = Nothing
 mergeCLog i     (Exp j k) | i == j = Just (k, Normalised)
 mergeCLog (I i) (I j)              = fmap (\r -> (I r, Normalised)) (clogBase i j)
 mergeCLog x     y                  = Just (CLog x y, Untouched)
+
+mergeCLogWZ :: ExtraOp -> ExtraOp -> ExtraOp -> Maybe NormaliseResult
+mergeCLogWZ (I i) _         _ | i < 2  = Nothing
+mergeCLogWZ _     (I 0)     z          = Just (z, Normalised)
+mergeCLogWZ i     (Exp j k) _ | i == j = Just (k, Normalised)
+mergeCLogWZ x     y@(I _)   _          = do (res, _) <- mergeCLog x y
+                                            pure (res, Normalised)
+mergeCLogWZ x     y         z          = Just (CLogWZ x y z, Untouched)
 
 mergeLog :: ExtraOp -> ExtraOp -> Maybe NormaliseResult
 mergeLog (I i) _          | i < 2   = Nothing
