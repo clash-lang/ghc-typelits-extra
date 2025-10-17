@@ -12,6 +12,9 @@ module ErrorTests where
 import Data.Proxy
 import GHC.TypeLits
 import GHC.TypeLits.Extra
+#if __GLASGOW_HASKELL__ >= 901
+import qualified Data.Type.Ord
+#endif
 
 testFail1 :: Proxy (GCD 6 8) -> Proxy 4
 testFail1 = id
@@ -101,144 +104,182 @@ testFail27 :: Proxy n -> Proxy (n + 2 <=? Max (n + 1) 1) -> Proxy True
 testFail27 _ = id
 
 testFail1Errors =
-  ["Expected: Proxy (GCD 6 8) -> Proxy 4"
-  ,"  Actual: Proxy 4 -> Proxy 4"
+  ["Proxy (GCD 6 8) -> Proxy 4"
+  ,"Proxy 4 -> Proxy 4"
   ]
 
 testFail2Errors =
-  ["Expected: Proxy (GCD 6 8 + x) -> Proxy (x + GCD 6 9)"
-  ,"  Actual: Proxy (2 + x) -> Proxy (2 + x)"
+#if __GLASGOW_HASKELL__ >= 904
+  ["Proxy (GCD 6 8 + x) -> Proxy (x + GCD 6 9)"
+  ,"Proxy (2 + x) -> Proxy (2 + x)"
   ]
+#elif __GLASGOW_HASKELL__ >= 900
+  ["Proxy (GCD 6 8 + x) -> Proxy (x + GCD 6 9)"
+  ,"Proxy (GCD 6 8 + x) -> Proxy (GCD 6 8 + x)"
+  ]
+#else
+  ["Expected type: Proxy (GCD 6 8 + x) -> Proxy (x + GCD 6 9)"
+  ,"Actual type: Proxy (x + GCD 6 9) -> Proxy (x + GCD 6 9)"
+  ]
+#endif
 
 testFail3Errors =
-  ["Expected: Proxy (CLog 3 10) -> Proxy 2"
-  ,"  Actual: Proxy 2 -> Proxy 2"
+  ["Proxy (CLog 3 10) -> Proxy 2"
+  ,"Proxy 2 -> Proxy 2"
   ]
 
 testFail4Errors =
-  ["Expected: Proxy (CLog 3 10 + x) -> Proxy (x + CLog 2 9)"
-  ,"  Actual: Proxy (CLog 3 10 + x) -> Proxy (CLog 3 10 + x)"
+#if __GLASGOW_HASKELL__ >= 900
+  ["Proxy (CLog 3 10 + x) -> Proxy (x + CLog 2 9)"
+  ,"Proxy (CLog 3 10 + x) -> Proxy (CLog 3 10 + x)"
   ]
+#else
+  ["Proxy (CLog 3 10 + x) -> Proxy (x + CLog 2 9)"
+  ,"Proxy (x + CLog 2 9) -> Proxy (x + CLog 2 9)"
+  ]
+#endif
 
 testFail5Errors =
-  ["Expected: Proxy (CLog 0 4) -> Proxy 100"
-  ,"  Actual: Proxy 100 -> Proxy 100"
+  ["Proxy (CLog 0 4) -> Proxy 100"
+  ,"Proxy 100 -> Proxy 100"
   ]
 
 testFail6Errors =
-  ["Expected: Proxy (CLog 1 4) -> Proxy 100"
-  ,"  Actual: Proxy 100 -> Proxy 100"
+  ["Proxy (CLog 1 4) -> Proxy 100"
+  ,"Proxy 100 -> Proxy 100"
   ]
 
 testFail7Errors =
-  ["Expected: Proxy (CLog 4 0) -> Proxy 0"
-  ,"  Actual: Proxy 0 -> Proxy 0"
+  ["Proxy (CLog 4 0) -> Proxy 0"
+  ,"Proxy 0 -> Proxy 0"
   ]
 
 testFail8Errors =
-  ["Expected: Proxy (CLog 1 (1 ^ y)) -> Proxy y"
-  ,"  Actual: Proxy y -> Proxy y"
+  ["Proxy (CLog 1 (1 ^ y)) -> Proxy y"
+  ,"Proxy y -> Proxy y"
   ]
 
 testFail9Errors =
-  ["Expected: Proxy (CLog 0 (0 ^ y)) -> Proxy y"
-  ,"  Actual: Proxy y -> Proxy y"
-  ]
-
-testFail12Errors =
-  ["Expected: Proxy (Div 4 0) -> Proxy 4"
-  ,"  Actual: Proxy 4 -> Proxy 4"
-  ]
-
-testFail13Errors =
-  ["Expected: Proxy (Mod 4 0) -> Proxy 4"
-  ,"  Actual: Proxy 4 -> Proxy 4"
-  ]
-
-testFail14Errors =
-  ["Expected: Proxy (FLog 0 4) -> Proxy 100"
-  ,"  Actual: Proxy 100 -> Proxy 100"
-  ]
-
-testFail15Errors =
-  ["Expected: Proxy (FLog 1 4) -> Proxy 100"
-  ,"  Actual: Proxy 100 -> Proxy 100"
-  ]
-
-testFail16Errors =
-  ["Expected: Proxy (FLog 4 0) -> Proxy 0"
-  ,"  Actual: Proxy 0 -> Proxy 0"
-  ]
-
-testFail17Errors =
-  ["Expected: Proxy (LCM 6 8) -> Proxy 48"
-  ,"  Actual: Proxy 48 -> Proxy 48"
-  ]
-
-testFail18Errors =
-  ["Expected: Proxy (LCM 6 8 + x) -> Proxy (x + LCM 6 9)"
-  ,"  Actual: Proxy (24 + x) -> Proxy (24 + x)"
-  ]
-
-testFail19Errors =
-  ["Couldn't match type: FLog 3 0"
-  ,"               with: CLog 3 0"]
-
-testFail20Errors =
-  ["Couldn't match type: FLog 3 10"
-  ,"               with: CLog 3 10"]
-
-testFail21Errors =
-  ["Expected: Proxy (Min a (a * b)) -> Proxy a"
-  ,"  Actual: Proxy a -> Proxy a"
-  ]
-
-testFail22Errors =
-  ["Expected: Proxy (Max a (a * b)) -> Proxy (a * b)"
-  ,"  Actual: Proxy (Max a (a * b)) -> Proxy (Max a (a * b))"]
-
-testFail27Errors =
-  ["Expected: Proxy ((n + 2) <=? Max (n + 1) 1) -> Proxy 'True"
-  ,"  Actual: Proxy 'True -> Proxy 'True"
+  ["Proxy (CLog 0 (0 ^ y)) -> Proxy y"
+  ,"Proxy y -> Proxy y"
   ]
 
 testFail10Errors =
+#if __GLASGOW_HASKELL__ >= 904
   ["Cannot satisfy: 2 <= 1"]
+#else
+  ["Couldn't match type ‘'False’ with ‘'True’"]
+#endif
 
 testFail11Errors =
+#if __GLASGOW_HASKELL__ >= 904
   ["Cannot satisfy: CLog 2 4 <= CLog 4 4"]
-
-testFail23Errors =
-  ["Couldn't match type ‘'True’ with ‘'False’"]
-
-testFail24Errors =
-#if __GLASGOW_HASKELL__ >= 912
-  ["Couldn't match type ‘ghc-internal-9.1201.0:GHC.Internal.Data.Type.Ord.OrdCond"
-  ,"(CmpNat z (Max x y)) 'True 'True 'False’"
-  ,"with ‘'True’"]
-#elif __GLASGOW_HASKELL__ >= 910
-  ["Couldn't match type ‘ghc-internal-9.1001.0:GHC.Internal.Data.Type.Ord.OrdCond"
-  ,"(CmpNat z (Max x y)) 'True 'True 'False’"
+#elif __GLASGOW_HASKELL__ >= 902
+  ["Couldn't match type ‘Data.Type.Ord.OrdCond"
+  ,"(CmpNat (CLog 2 4) (CLog 4 4)) 'True 'True 'False’"
   ,"with ‘'True’"]
 #else
+  ["Couldn't match type ‘CLog 2 4 <=? CLog 4 4’ with ‘'True’"]
+#endif
+
+testFail12Errors =
+  ["Proxy (Div 4 0) -> Proxy 4"
+  ,"Proxy 4 -> Proxy 4"
+  ]
+
+testFail13Errors =
+  ["Proxy (Mod 4 0) -> Proxy 4"
+  ,"Proxy 4 -> Proxy 4"
+  ]
+
+testFail14Errors =
+  ["Proxy (FLog 0 4) -> Proxy 100"
+  ,"Proxy 100 -> Proxy 100"
+  ]
+
+testFail15Errors =
+  ["Proxy (FLog 1 4) -> Proxy 100"
+  ,"Proxy 100 -> Proxy 100"
+  ]
+
+testFail16Errors =
+  ["Proxy (FLog 4 0) -> Proxy 0"
+  ,"Proxy 0 -> Proxy 0"
+  ]
+
+testFail17Errors =
+  ["Proxy (LCM 6 8) -> Proxy 48"
+  ,"Proxy 48 -> Proxy 48"
+  ]
+
+testFail18Errors =
+#if __GLASGOW_HASKELL__ >= 904
+  ["Proxy (LCM 6 8 + x) -> Proxy (x + LCM 6 9)"
+  ,"Proxy (24 + x) -> Proxy (24 + x)"
+  ]
+#elif __GLASGOW_HASKELL__ >= 900
+  ["Proxy (LCM 6 8 + x) -> Proxy (x + LCM 6 9)"
+  ,"Proxy (LCM 6 8 + x) -> Proxy (LCM 6 8 + x)"
+  ]
+#else
+  ["Proxy (LCM 6 8 + x) -> Proxy (x + LCM 6 9)"
+  ,"Proxy (x + LCM 6 9) -> Proxy (x + LCM 6 9)"
+  ]
+#endif
+
+testFail19Errors =
+#if __GLASGOW_HASKELL__ >= 900
+  ["Couldn't match type: FLog 3 0"
+  ,"               with: CLog 3 0"]
+#else
+  ["Couldn't match type ‘FLog 3 0’ with ‘CLog 3 0’"]
+#endif
+
+testFail20Errors =
+#if __GLASGOW_HASKELL__ >= 900
+  ["Couldn't match type: FLog 3 10"
+  ,"               with: CLog 3 10"]
+#else
+  ["Couldn't match type ‘FLog 3 10’ with ‘CLog 3 10’"]
+#endif
+
+testFail21Errors =
+  ["Proxy (Min a (a * b)) -> Proxy a"
+  ,"Proxy a -> Proxy a"
+  ]
+
+testFail22Errors =
+#if __GLASGOW_HASKELL__ >= 900
+  ["Proxy (Max a (a * b)) -> Proxy (a * b)"
+  ,"Proxy (Max a (a * b)) -> Proxy (Max a (a * b))"]
+#else
+  ["Proxy (Max a (a * b)) -> Proxy (a * b)"
+  ,"Proxy (a * b) -> Proxy (a * b)"]
+#endif
+
+testFail23Errors =
+#if __GLASGOW_HASKELL__ >= 804
+  ["Couldn't match type ‘'True’ with ‘'False’"]
+#else
+  ["Couldn't match type ‘1 <=? Div 18 3’ with ‘'False’"]
+#endif
+
+testFail24Errors =
+#if __GLASGOW_HASKELL__ >= 902
   ["Couldn't match type ‘Data.Type.Ord.OrdCond"
   ,"(CmpNat z (Max x y)) 'True 'True 'False’"
   ,"with ‘'True’"]
+#else
+  ["Couldn't match type ‘z <=? Max x y’ with ‘'True’"]
 #endif
 
 testFail25Errors =
-#if __GLASGOW_HASKELL__ >= 912
-  ["Couldn't match type ‘ghc-internal-9.1201.0:GHC.Internal.Data.Type.Ord.OrdCond"
-  ,"(CmpNat (x + 1) (Max x y)) 'True 'True 'False’"
-  ,"with ‘'True’"]
-#elif __GLASGOW_HASKELL__ >= 910
-  ["Couldn't match type ‘ghc-internal-9.1001.0:GHC.Internal.Data.Type.Ord.OrdCond"
-  ,"(CmpNat (x + 1) (Max x y)) 'True 'True 'False’"
-  ,"with ‘'True’"]
-#else
+#if __GLASGOW_HASKELL__ >= 902
   ["Couldn't match type ‘Data.Type.Ord.OrdCond"
   ,"(CmpNat (x + 1) (Max x y)) 'True 'True 'False’"
   ,"with ‘'True’"]
+#else
+  ["Couldn't match type ‘(x + 1) <=? Max x y’ with ‘'True’"]
 #endif
 
 testFail26Errors =
@@ -246,8 +287,17 @@ testFail26Errors =
   ["Could not deduce ‘Max x y ~ n’"
   ,"from the context: (x <=? n) ~ True"
   ]
+#elif __GLASGOW_HASKELL__ <= 902
+  ["Could not deduce: Max x y ~ n"
+  ,"from the context: (x <=? n) ~ 'True"
+  ]
 #else
   ["Could not deduce (Max x y ~ n)"
   ,"from the context: (x <=? n) ~ 'True"
   ]
 #endif
+
+testFail27Errors =
+  ["Proxy ((n + 2) <=? Max (n + 1) 1) -> Proxy 'True"
+  ,"Proxy 'True -> Proxy 'True"
+  ]

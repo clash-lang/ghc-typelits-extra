@@ -10,10 +10,10 @@ Maintainer :  Christiaan Baaij <christiaan.baaij@gmail.com>
 
 module GHC.TypeLits.Extra.Solver.Operations
   ( ExtraOp (..)
-  , ExtraDefs (..)
   , Normalised (..)
   , NormaliseResult
   , mergeNormalised
+  , depsFromNormalised
   , reifyEOP
   , mergeMax
   , mergeMin
@@ -39,31 +39,32 @@ import GHC.Integer                  (smallInteger)
 import GHC.Integer.Logarithms       (integerLogBase#)
 import GHC.TypeLits.Normalise.Unify (CType (..), normaliseNat, isNatural)
 
+-- ghc-tcplugin-api
+import GHC.TcPlugin.API
+
 -- GHC API
-#if MIN_VERSION_ghc(9,0,0)
 import GHC.Builtin.Types.Literals (typeNatExpTyCon, typeNatSubTyCon)
-import GHC.Core.TyCon (TyCon)
-import GHC.Core.Type (Type, TyVar, mkNumLitTy, mkTyConApp, mkTyVarTy)
-import GHC.Utils.Outputable (Outputable (..), (<+>), integer, text)
-#else
-import Outputable (Outputable (..), (<+>), integer, text)
-import TcTypeNats (typeNatExpTyCon, typeNatSubTyCon)
-import TyCon      (TyCon)
-import Type       (Type, TyVar, mkNumLitTy, mkTyConApp, mkTyVarTy)
-#endif
+import GHC.Utils.Outputable ((<+>), integer, text)
+
+-- internal
+import GHC.TypeLits.Extra.Solver.Compat
 
 -- | Indicates whether normalisation has occured
-data Normalised = Normalised | Untouched
-  deriving Eq
+data Normalised = Normalised [Coercion] | Untouched
 
 instance Outputable Normalised where
-  ppr Normalised = text "Normalised"
-  ppr Untouched  = text "Untouched"
+  ppr Normalised{} = text "Normalised"
+  ppr Untouched    = text "Untouched"
 
 mergeNormalised :: Normalised -> Normalised -> Normalised
-mergeNormalised Normalised _ = Normalised
-mergeNormalised _ Normalised = Normalised
-mergeNormalised _ _          = Untouched
+mergeNormalised (Normalised d1) (Normalised d2) = Normalised (d1 ++ d2)
+mergeNormalised (Normalised d) _ = Normalised d
+mergeNormalised _ (Normalised d) = Normalised d
+mergeNormalised _ _              = Untouched
+
+depsFromNormalised :: Normalised -> [Coercion]
+depsFromNormalised (Normalised deps) = deps
+depsFromNormalised Untouched = []
 
 -- | A normalise result contains the ExtraOp and a flag that indicates whether any expression
 -- | was normalised within the ExtraOp.
@@ -100,20 +101,6 @@ instance Outputable ExtraOp where
   ppr (LCM x y)  = text "GCD (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
   ppr (Exp x y)  = text "Exp (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
 
-data ExtraDefs = ExtraDefs
-  { maxTyCon  :: TyCon
-  , minTyCon  :: TyCon
-  , divTyCon  :: TyCon
-  , modTyCon  :: TyCon
-  , flogTyCon :: TyCon
-  , clogTyCon :: TyCon
-  , logTyCon  :: TyCon
-  , gcdTyCon  :: TyCon
-  , lcmTyCon  :: TyCon
-  , ordTyCon  :: TyCon
-  , assertTC  :: TyCon
-  }
-
 reifyEOP :: ExtraDefs -> ExtraOp -> Type
 reifyEOP _ (I i) = mkNumLitTy i
 reifyEOP _ (V v) = mkTyVarTy v
@@ -140,78 +127,66 @@ reifyEOP defs (Exp x y)  = mkTyConApp typeNatExpTyCon  [reifyEOP defs x
                                                        ,reifyEOP defs y]
 
 mergeMax :: ExtraDefs -> ExtraOp -> ExtraOp -> NormaliseResult
-mergeMax _ (I 0) y = (y, Normalised)
-mergeMax _ x (I 0) = (x, Normalised)
+mergeMax _ (I 0) y = (y, Normalised [])
+mergeMax _ x (I 0) = (x, Normalised [])
 mergeMax defs x y =
   let x' = reifyEOP defs x
       y' = reifyEOP defs y
-      z  = fst (runWriter (normaliseNat (mkTyConApp typeNatSubTyCon [y',x'])))
-#if MIN_VERSION_ghc_typelits_natnormalise(0,7,0)
+      (z,deps) = fst (runWriter (normaliseNat (mkTyConApp typeNatSubTyCon [y',x'])))
   in  case runWriterT (isNatural z) of
-        Just (True , cs) | Set.null cs -> (y, Normalised)
-        Just (False, cs) | Set.null cs -> (x, Normalised)
-#else
-  in  case isNatural z of
-        Just True  -> (y, Normalised)
-        Just False -> (x, Normalised)
-#endif
+        Just (True , cs) | Set.null cs -> (y, Normalised deps)
+        Just (False, cs) | Set.null cs -> (x, Normalised deps)
         _ -> (Max x y, Untouched)
 
 mergeMin :: ExtraDefs -> ExtraOp -> ExtraOp -> NormaliseResult
 mergeMin defs x y =
   let x' = reifyEOP defs x
       y' = reifyEOP defs y
-      z  = fst (runWriter (normaliseNat (mkTyConApp typeNatSubTyCon [y',x'])))
-#if MIN_VERSION_ghc_typelits_natnormalise(0,7,0)
+      (z,deps) = fst (runWriter (normaliseNat (mkTyConApp typeNatSubTyCon [y',x'])))
   in  case runWriterT (isNatural z) of
-        Just (True, cs) | Set.null cs -> (x, Normalised)
-        Just (False,cs) | Set.null cs -> (y, Normalised)
-#else
-  in  case isNatural z of
-        Just True  -> (x, Normalised)
-        Just False -> (y, Normalised)
-#endif
+        Just (True, cs) | Set.null cs -> (x, Normalised deps)
+        Just (False,cs) | Set.null cs -> (y, Normalised deps)
         _ -> (Min x y, Untouched)
 
 mergeDiv :: ExtraOp -> ExtraOp -> Maybe NormaliseResult
 mergeDiv _     (I 0)      = Nothing
-mergeDiv (I i) (I j)      = Just (I (div i j), Normalised)
+mergeDiv (I i) (I j)      = Just (I (div i j), Normalised [])
 mergeDiv x y              = Just (Div x y, Untouched)
 
 mergeMod :: ExtraOp -> ExtraOp -> Maybe NormaliseResult
 mergeMod _     (I 0)      = Nothing
-mergeMod (I i) (I j)      = Just (I (mod i j), Normalised)
+mergeMod (I i) (I j)      = Just (I (mod i j), Normalised [])
 mergeMod x y              = Just (Mod x y, Untouched)
 
 mergeFLog :: ExtraOp -> ExtraOp -> Maybe NormaliseResult
 mergeFLog (I i) _         | i < 2  = Nothing
-mergeFLog i     (Exp j k) | i == j = Just (k, Normalised)
-mergeFLog (I i) (I j)              = fmap (\r -> (I r, Normalised)) (flogBase i j)
+mergeFLog i     (Exp j k) | i == j = Just (k, Normalised [])
+mergeFLog (I i) (I j)              = fmap (\r -> (I r, Normalised [])) (flogBase i j)
 mergeFLog x     y                  = Just (FLog x y, Untouched)
 
 mergeCLog :: ExtraOp -> ExtraOp -> Maybe NormaliseResult
 mergeCLog (I i) _         | i < 2  = Nothing
-mergeCLog i     (Exp j k) | i == j = Just (k, Normalised)
-mergeCLog (I i) (I j)              = fmap (\r -> (I r, Normalised)) (clogBase i j)
+mergeCLog i     (Exp j k) | i == j = Just (k, Normalised [])
+mergeCLog (I i) (I j)              = fmap (\r -> (I r, Normalised [])) (clogBase i j)
 mergeCLog x     y                  = Just (CLog x y, Untouched)
 
 mergeLog :: ExtraOp -> ExtraOp -> Maybe NormaliseResult
 mergeLog (I i) _          | i < 2   = Nothing
-mergeLog b     (Exp b' y) | b == b' = Just (y, Normalised)
-mergeLog (I i) (I j)                = fmap (\r -> (I r, Normalised)) (exactLogBase i j)
+mergeLog b     (Exp b' y) | b == b' = Just (y, Normalised [])
+mergeLog (I i) (I j)                = fmap (\r -> (I r, Normalised [])) (exactLogBase i j)
 mergeLog x     y                    = Just (Log x y, Untouched)
 
 mergeGCD :: ExtraOp -> ExtraOp -> NormaliseResult
-mergeGCD (I i) (I j) = (I (gcd i j), Normalised)
+mergeGCD (I i) (I j) = (I (gcd i j), Normalised [])
 mergeGCD x     y     = (GCD x y, Untouched)
 
 mergeLCM :: ExtraOp -> ExtraOp -> NormaliseResult
-mergeLCM (I i) (I j) = (I (lcm i j), Normalised)
+mergeLCM (I i) (I j) = (I (lcm i j), Normalised [])
 mergeLCM x     y     = (LCM x y, Untouched)
 
 mergeExp :: ExtraOp -> ExtraOp -> NormaliseResult
-mergeExp (I i) (I j)                = (I (i^j), Normalised)
-mergeExp b     (Log b' y) | b == b' = (y, Normalised)
+mergeExp (I i) (I j)                = (I (i^j), Normalised [])
+mergeExp b     (Log b' y) | b == b' = (y, Normalised [])
 mergeExp x     y                    = (Exp x y, Untouched)
 
 -- | \x y -> logBase x y, x > 1 && y > 0

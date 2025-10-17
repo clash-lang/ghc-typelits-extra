@@ -2,9 +2,16 @@
 #if __GLASGOW_HASKELL__ >= 805
 {-# LANGUAGE NoStarIsType #-}
 #endif
+
+#if __GLASGOW_HASKELL__ >= 904
+{-# OPTIONS_GHC -fplugin GHC.TypeLits.Extra.Solver #-}
+#endif
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.Normalise #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
+#if __GLASGOW_HASKELL__ < 904
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.Extra.Solver #-}
+#endif
+
 
 import Data.List (isInfixOf)
 import Data.Proxy
@@ -230,9 +237,10 @@ test58a
 test58a = id
 
 test58b
-  :: Proxy (Max (n+2) 1)
+  :: Proxy n
   -> Proxy (Max (n+2) 1)
-test58b = test58a
+  -> Proxy (Max (n+2) 1)
+test58b _ = test58a
 
 main :: IO ()
 main = defaultMain tests
