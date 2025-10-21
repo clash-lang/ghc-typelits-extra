@@ -1,5 +1,8 @@
 # Changelog for the [`ghc-typelits-extra`](http://hackage.haskell.org/package/ghc-typelits-extra) package
 
+# 0.5.1 *October 21st 2025*
+* Compatibility with `ghc-typelits-natnormalise` 0.9.1 release
+
 # 0.5.0 *October 17th 2025*
 * Add support for GHC 9.14
 * Uses https://hackage.haskell.org/package/ghc-tcplugin-api to make supporting new GHC versions easier

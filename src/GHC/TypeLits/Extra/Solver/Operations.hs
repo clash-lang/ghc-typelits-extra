@@ -133,9 +133,14 @@ mergeMax defs x y =
   let x' = reifyEOP defs x
       y' = reifyEOP defs y
       (z,deps) = fst (runWriter (normaliseNat (mkTyConApp typeNatSubTyCon [y',x'])))
+      (z',deps') = fst (runWriter (normaliseNat (mkTyConApp typeNatSubTyCon [x',y'])))
   in  case runWriterT (isNatural z) of
-        Just (True , cs) | Set.null cs -> (y, Normalised deps)
-        Just (False, cs) | Set.null cs -> (x, Normalised deps)
+        Nothing -> case runWriterT (isNatural z') of
+          Just (True ,cs) | Set.null cs -> (x, Normalised deps') -- x >= y
+          Just (False,cs) | Set.null cs -> (y, Normalised deps') -- x < y
+          _ -> (Max x y, Untouched)
+        Just (True , cs) | Set.null cs -> (y, Normalised deps) -- y >= x
+        Just (False, cs) | Set.null cs -> (x, Normalised deps) -- y < x
         _ -> (Max x y, Untouched)
 
 mergeMin :: ExtraDefs -> ExtraOp -> ExtraOp -> NormaliseResult
@@ -143,9 +148,14 @@ mergeMin defs x y =
   let x' = reifyEOP defs x
       y' = reifyEOP defs y
       (z,deps) = fst (runWriter (normaliseNat (mkTyConApp typeNatSubTyCon [y',x'])))
+      (z',deps') = fst (runWriter (normaliseNat (mkTyConApp typeNatSubTyCon [x',y'])))
   in  case runWriterT (isNatural z) of
-        Just (True, cs) | Set.null cs -> (x, Normalised deps)
-        Just (False,cs) | Set.null cs -> (y, Normalised deps)
+        Nothing -> case runWriterT (isNatural z') of
+          Just (True ,cs) | Set.null cs -> (y, Normalised deps') -- x >= y
+          Just (False,cs) | Set.null cs -> (x, Normalised deps') -- x < y
+          _ -> (Min x y, Untouched)
+        Just (True, cs) | Set.null cs -> (x, Normalised deps) -- y >= x
+        Just (False,cs) | Set.null cs -> (y, Normalised deps) -- y < x
         _ -> (Min x y, Untouched)
 
 mergeDiv :: ExtraOp -> ExtraOp -> Maybe NormaliseResult
