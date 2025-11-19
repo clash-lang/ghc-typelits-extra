@@ -1,5 +1,7 @@
 # Changelog for the [`ghc-typelits-extra`](http://hackage.haskell.org/package/ghc-typelits-extra) package
 
+* Add rewrite rules for `Min`, `Max`, `FLog`, `CLog`, and `Log`
+
 # 0.5.1 *October 21st 2025*
 * Compatibility with `ghc-typelits-natnormalise` 0.9.1 release
 
