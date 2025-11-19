@@ -90,17 +90,58 @@ normalisePlugin =
 
 extraRewrite :: ExtraDefs -> UniqFM TyCon TcPluginRewriter
 extraRewrite defs = listToUFM
-  [ (gcdTyCon defs, gcdRewrite)
+  [ (minTyCon defs, minRewrite)
+  , (maxTyCon defs, maxRewrite)
+  , (flogTyCon defs, flogRewrite)
+  , (clogTyCon defs, clogRewrite)
+  , (logTyCon defs, logRewrite)
+  , (gcdTyCon defs, gcdRewrite)
   , (lcmTyCon defs, lcmRewrite)
   ]
   where
-    gcdRewrite _ args@[LitTy (NumTyLit i), LitTy (NumTyLit j)] = pure $
-      TcPluginRewriteTo (reduce (gcdTyCon defs) args (LitTy (NumTyLit (i `gcd` j)))) []
+    minRewrite _ args
+      | [LitTy (NumTyLit i), LitTy (NumTyLit j)] <- args
+      = pure $ rewriteTo (minTyCon defs) args $ min i j
+    minRewrite _ _ = pure TcPluginNoRewrite
+
+    maxRewrite _ args
+      | [LitTy (NumTyLit i), LitTy (NumTyLit j)] <- args
+      = pure $ rewriteTo (maxTyCon defs) args $ max i j
+    maxRewrite _ _ = pure TcPluginNoRewrite
+
+    flogRewrite _ args
+      | [LitTy (NumTyLit i), LitTy (NumTyLit j)] <- args
+      , i > 1
+      , Just r <- flogBase i j
+      = pure $ rewriteTo (flogTyCon defs) args r
+    flogRewrite _ _ = pure TcPluginNoRewrite
+
+    clogRewrite _ args
+      | [LitTy (NumTyLit i), LitTy (NumTyLit j)] <- args
+      , i > 1
+      , Just r <- clogBase i j
+      = pure $ rewriteTo (clogTyCon defs) args r
+    clogRewrite _ _ = pure TcPluginNoRewrite
+
+    logRewrite _ args
+      | [LitTy (NumTyLit i), LitTy (NumTyLit j)] <- args
+      , i > 1
+      , Just r <- exactLogBase i j
+      = pure $ rewriteTo (logTyCon defs) args r
+    logRewrite _ _ = pure TcPluginNoRewrite
+
+    gcdRewrite _ args
+      | [LitTy (NumTyLit i), LitTy (NumTyLit j)] <- args
+      = pure $ rewriteTo (gcdTyCon defs) args (i `gcd` j)
     gcdRewrite _ _ = pure TcPluginNoRewrite
 
-    lcmRewrite _ args@[LitTy (NumTyLit i), LitTy (NumTyLit j)] = pure $
-      TcPluginRewriteTo (reduce (lcmTyCon defs) args (LitTy (NumTyLit (i `lcm` j)))) []
+    lcmRewrite _ args
+      | [LitTy (NumTyLit i), LitTy (NumTyLit j)] <- args
+      = pure $ rewriteTo (lcmTyCon defs) args (i `lcm` j)
     lcmRewrite _ _ = pure TcPluginNoRewrite
+
+    rewriteTo tyCon args x =
+      TcPluginRewriteTo (reduce tyCon args (LitTy (NumTyLit x))) []
 
     reduce tc args res = Reduction co res
      where

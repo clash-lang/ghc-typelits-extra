@@ -129,7 +129,11 @@ testFail3Errors =
   ]
 
 testFail4Errors =
-#if __GLASGOW_HASKELL__ >= 900
+#if __GLASGOW_HASKELL__ >= 904
+  ["Proxy (CLog 3 10 + x) -> Proxy (x + CLog 2 9)"
+  ,"Proxy (3 + x) -> Proxy (3 + x)"
+  ]
+#elif __GLASGOW_HASKELL__ >= 900
   ["Proxy (CLog 3 10 + x) -> Proxy (x + CLog 2 9)"
   ,"Proxy (CLog 3 10 + x) -> Proxy (CLog 3 10 + x)"
   ]
@@ -173,13 +177,9 @@ testFail10Errors =
 
 testFail11Errors =
 #if __GLASGOW_HASKELL__ >= 904
-  ["Cannot satisfy: CLog 2 4 <= CLog 4 4"]
-#elif __GLASGOW_HASKELL__ >= 902
-  ["Couldn't match type ‘Data.Type.Ord.OrdCond"
-  ,"(CmpNat (CLog 2 4) (CLog 4 4)) 'True 'True 'False’"
-  ,"with ‘'True’"]
+  ["Cannot satisfy: 2 <= 1"]
 #else
-  ["Couldn't match type ‘CLog 2 4 <=? CLog 4 4’ with ‘'True’"]
+  ["Couldn't match type ‘'False` with ‘'True’"]
 #endif
 
 testFail12Errors =
@@ -236,7 +236,9 @@ testFail19Errors =
 #endif
 
 testFail20Errors =
-#if __GLASGOW_HASKELL__ >= 900
+#if __GLASGOW_HASKELL__ >= 904
+  ["Couldn't match type ‘1’ with ‘0’"]
+#elif __GLASGOW_HASKELL__ >= 900
   ["Couldn't match type: FLog 3 10"
   ,"               with: CLog 3 10"]
 #else

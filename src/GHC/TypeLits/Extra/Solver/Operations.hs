@@ -25,6 +25,9 @@ module GHC.TypeLits.Extra.Solver.Operations
   , mergeGCD
   , mergeLCM
   , mergeExp
+  , flogBase
+  , clogBase
+  , exactLogBase
   )
 where
 
