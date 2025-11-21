@@ -35,16 +35,17 @@ import GHC.Tc.Types.Constraint
 import qualified GHC.TypeLits.Extra
 
 data ExtraDefs = ExtraDefs
-  { maxTyCon  :: TyCon
-  , minTyCon  :: TyCon
-  , divTyCon  :: TyCon
-  , modTyCon  :: TyCon
-  , flogTyCon :: TyCon
-  , clogTyCon :: TyCon
-  , logTyCon  :: TyCon
-  , gcdTyCon  :: TyCon
-  , lcmTyCon  :: TyCon
-  , ordTyCons :: LookedUpTyCons
+  { maxTyCon    :: TyCon
+  , minTyCon    :: TyCon
+  , divTyCon    :: TyCon
+  , modTyCon    :: TyCon
+  , flogTyCon   :: TyCon
+  , clogTyCon   :: TyCon
+  , clogWZTyCon :: TyCon
+  , logTyCon    :: TyCon
+  , gcdTyCon    :: TyCon
+  , lcmTyCon    :: TyCon
+  , ordTyCons   :: LookedUpTyCons
   }
 
 -- | Find the \"magic\" classes and instances in "GHC.TypeLits.KnownNat"
@@ -56,6 +57,7 @@ lookupExtraDefs = do
               <*> pure typeNatModTyCon
               <*> look ''GHC.TypeLits.Extra.FLog
               <*> look ''GHC.TypeLits.Extra.CLog
+              <*> look ''GHC.TypeLits.Extra.CLogWZ
               <*> look ''GHC.TypeLits.Extra.Log
               <*> look ''GHC.TypeLits.Extra.GCD
               <*> look ''GHC.TypeLits.Extra.LCM

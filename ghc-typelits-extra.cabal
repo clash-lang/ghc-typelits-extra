@@ -19,6 +19,8 @@ description:
   * @CLog@: type-level equivalent of /the ceiling of/ <https://hackage.haskell.org/package/base-4.17.0.0/docs/GHC-Integer-Logarithms.html#v:integerLogBase-35- integerLogBase#>
     i.e. the exact integer equivalent to @ceiling (logBase x y)@
 
+  * @CLogWZ@: extension of @CLog@, which returns the additional third argument in case the second argument is zero
+
   * @Log@: type-level equivalent of <https://hackage.haskell.org/package/base-4.17.0.0/docs/GHC-Integer-Logarithms.html#v:integerLogBase-35- integerLogBase#>
      where the operation only reduces when @floor (logBase b x) ~ ceiling (logBase b x)@
 

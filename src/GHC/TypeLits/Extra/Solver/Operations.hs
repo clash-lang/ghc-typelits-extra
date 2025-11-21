@@ -7,6 +7,7 @@ Maintainer :  Christiaan Baaij <christiaan.baaij@gmail.com>
 
 {-# LANGUAGE CPP       #-}
 {-# LANGUAGE MagicHash #-}
+{-# LANGUAGE LambdaCase #-}
 
 module GHC.TypeLits.Extra.Solver.Operations
   ( ExtraOp (..)
@@ -21,6 +22,7 @@ module GHC.TypeLits.Extra.Solver.Operations
   , mergeMod
   , mergeFLog
   , mergeCLog
+  , mergeCLogWZ
   , mergeLog
   , mergeGCD
   , mergeLCM
@@ -74,19 +76,20 @@ depsFromNormalised Untouched = []
 type NormaliseResult = (ExtraOp, Normalised)
 
 data ExtraOp
-  = I    Integer
-  | V    TyVar
-  | C    CType
-  | Max  ExtraOp ExtraOp
-  | Min  ExtraOp ExtraOp
-  | Div  ExtraOp ExtraOp
-  | Mod  ExtraOp ExtraOp
-  | FLog ExtraOp ExtraOp
-  | CLog ExtraOp ExtraOp
-  | Log  ExtraOp ExtraOp
-  | GCD  ExtraOp ExtraOp
-  | LCM  ExtraOp ExtraOp
-  | Exp  ExtraOp ExtraOp
+  = I      Integer
+  | V      TyVar
+  | C      CType
+  | Max    ExtraOp ExtraOp
+  | Min    ExtraOp ExtraOp
+  | Div    ExtraOp ExtraOp
+  | Mod    ExtraOp ExtraOp
+  | FLog   ExtraOp ExtraOp
+  | CLog   ExtraOp ExtraOp
+  | CLogWZ ExtraOp ExtraOp ExtraOp
+  | Log    ExtraOp ExtraOp
+  | GCD    ExtraOp ExtraOp
+  | LCM    ExtraOp ExtraOp
+  | Exp    ExtraOp ExtraOp
   deriving Eq
 
 instance Outputable ExtraOp where
@@ -103,31 +106,25 @@ instance Outputable ExtraOp where
   ppr (GCD x y)  = text "GCD (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
   ppr (LCM x y)  = text "GCD (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
   ppr (Exp x y)  = text "Exp (" <+> ppr x <+> text "," <+> ppr y <+> text ")"
+  ppr (CLogWZ x y z) = text "CLogWZ " <+> text "(" <+> ppr x <+> text ","
+                       <+> ppr y <+> text "," <+> ppr z <+> text ")"
 
 reifyEOP :: ExtraDefs -> ExtraOp -> Type
-reifyEOP _ (I i) = mkNumLitTy i
-reifyEOP _ (V v) = mkTyVarTy v
-reifyEOP _ (C (CType c)) = c
-reifyEOP defs (Max x y)  = mkTyConApp (maxTyCon defs)  [reifyEOP defs x
-                                                       ,reifyEOP defs y]
-reifyEOP defs (Min x y)  = mkTyConApp (minTyCon defs)  [reifyEOP defs x
-                                                       ,reifyEOP defs y]
-reifyEOP defs (Div x y)  = mkTyConApp (divTyCon defs)  [reifyEOP defs x
-                                                       ,reifyEOP defs y]
-reifyEOP defs (Mod x y)  = mkTyConApp (modTyCon defs)  [reifyEOP defs x
-                                                       ,reifyEOP defs y]
-reifyEOP defs (CLog x y) = mkTyConApp (clogTyCon defs) [reifyEOP defs x
-                                                       ,reifyEOP defs y]
-reifyEOP defs (FLog x y) = mkTyConApp (flogTyCon defs) [reifyEOP defs x
-                                                       ,reifyEOP defs y]
-reifyEOP defs (Log x y)  = mkTyConApp (logTyCon defs)  [reifyEOP defs x
-                                                       ,reifyEOP defs y]
-reifyEOP defs (GCD x y)  = mkTyConApp (gcdTyCon defs)  [reifyEOP defs x
-                                                       ,reifyEOP defs y]
-reifyEOP defs (LCM x y)  = mkTyConApp (lcmTyCon defs)  [reifyEOP defs x
-                                                       ,reifyEOP defs y]
-reifyEOP defs (Exp x y)  = mkTyConApp typeNatExpTyCon  [reifyEOP defs x
-                                                       ,reifyEOP defs y]
+reifyEOP defs = \case
+  I i          -> mkNumLitTy i
+  V v          -> mkTyVarTy v
+  C (CType c)  -> c
+  Max x y      -> mkTyConApp (maxTyCon defs)  $ reifyEOP defs <$> [x, y]
+  Min x y      -> mkTyConApp (minTyCon defs)  $ reifyEOP defs <$> [x, y]
+  Div x y      -> mkTyConApp (divTyCon defs)  $ reifyEOP defs <$> [x, y]
+  Mod x y      -> mkTyConApp (modTyCon defs)  $ reifyEOP defs <$> [x, y]
+  CLog x y     -> mkTyConApp (clogTyCon defs) $ reifyEOP defs <$> [x, y]
+  CLogWZ x y z -> mkTyConApp (clogTyCon defs) $ reifyEOP defs <$> [x, y, z]
+  FLog x y     -> mkTyConApp (flogTyCon defs) $ reifyEOP defs <$> [x, y]
+  Log x y      -> mkTyConApp (logTyCon defs)  $ reifyEOP defs <$> [x, y]
+  GCD x y      -> mkTyConApp (gcdTyCon defs)  $ reifyEOP defs <$> [x, y]
+  LCM x y      -> mkTyConApp (lcmTyCon defs)  $ reifyEOP defs <$> [x, y]
+  Exp x y      -> mkTyConApp typeNatExpTyCon  $ reifyEOP defs <$> [x, y]
 
 mergeMax :: ExtraDefs -> ExtraOp -> ExtraOp -> NormaliseResult
 mergeMax _ (I 0) y = (y, Normalised [])
@@ -182,6 +179,14 @@ mergeCLog (I i) _         | i < 2  = Nothing
 mergeCLog i     (Exp j k) | i == j = Just (k, Normalised [])
 mergeCLog (I i) (I j)              = fmap (\r -> (I r, Normalised [])) (clogBase i j)
 mergeCLog x     y                  = Just (CLog x y, Untouched)
+
+mergeCLogWZ :: ExtraOp -> ExtraOp -> ExtraOp -> Maybe NormaliseResult
+mergeCLogWZ (I i) _         _ | i < 2  = Nothing
+mergeCLogWZ _     (I 0)     z          = Just (z, Normalised [])
+mergeCLogWZ i     (Exp j k) _ | i == j = Just (k, Normalised [])
+mergeCLogWZ x     y@(I _)   _          = do (res, _) <- mergeCLog x y
+                                            pure (res, Normalised [])
+mergeCLogWZ x     y         z          = Just (CLogWZ x y z, Untouched)
 
 mergeLog :: ExtraOp -> ExtraOp -> Maybe NormaliseResult
 mergeLog (I i) _          | i < 2   = Nothing

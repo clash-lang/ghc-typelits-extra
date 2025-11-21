@@ -6,6 +6,7 @@ Maintainer :  Christiaan Baaij <christiaan.baaij@gmail.com>
 -}
 
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE LambdaCase #-}
 
 module GHC.TypeLits.Extra.Solver.Unify
   ( UnifyResult (..)
@@ -55,6 +56,7 @@ normaliseNat defs = go
   go ty | Just ty1 <- coreView ty = go ty1
   go (TyVarTy v)          = pure (V v, Untouched)
   go (LitTy (NumTyLit i)) = pure (I i, Untouched)
+
   go (TyConApp tc [x,y])
     | tc == maxTyCon defs
     = mergeNormResWith (\x' y' -> return (mergeMax defs x' y'))
@@ -96,6 +98,14 @@ normaliseNat defs = go
     = mergeNormResWith (\x' y' -> return (mergeExp x' y'))
                        (go x)
                        (go y)
+
+  go (TyConApp tc [x,y,z])
+    | tc == clogWZTyCon defs
+    = do (x', n1) <- normaliseNat defs x
+         (y', n2) <- normaliseNat defs y
+         (z', n3) <- normaliseNat defs z
+         (res, n4) <- MaybeT $ return $ mergeCLogWZ x' y' z'
+         pure (res, foldl mergeNormalised Untouched [n1,n2,n3,n4])
 
   go (TyConApp tc tys) = do
     let mergeExtraOp [] = []
@@ -149,34 +159,37 @@ unifyExtra' u v
     commuteResult _    _    = Draw
 
 fvOP :: ExtraOp -> UniqSet TyVar
-fvOP (I _)      = emptyUniqSet
-fvOP (V v)      = unitUniqSet v
-fvOP (C _)      = emptyUniqSet
-fvOP (Max x y)  = fvOP x `unionUniqSets` fvOP y
-fvOP (Min x y)  = fvOP x `unionUniqSets` fvOP y
-fvOP (Div x y)  = fvOP x `unionUniqSets` fvOP y
-fvOP (Mod x y)  = fvOP x `unionUniqSets` fvOP y
-fvOP (FLog x y) = fvOP x `unionUniqSets` fvOP y
-fvOP (CLog x y) = fvOP x `unionUniqSets` fvOP y
-fvOP (Log x y)  = fvOP x `unionUniqSets` fvOP y
-fvOP (GCD x y)  = fvOP x `unionUniqSets` fvOP y
-fvOP (LCM x y)  = fvOP x `unionUniqSets` fvOP y
-fvOP (Exp x y)  = fvOP x `unionUniqSets` fvOP y
+fvOP (I _)          = emptyUniqSet
+fvOP (V v)          = unitUniqSet v
+fvOP (C _)          = emptyUniqSet
+fvOP (Max x y)      = fvOP x `unionUniqSets` fvOP y
+fvOP (Min x y)      = fvOP x `unionUniqSets` fvOP y
+fvOP (Div x y)      = fvOP x `unionUniqSets` fvOP y
+fvOP (Mod x y)      = fvOP x `unionUniqSets` fvOP y
+fvOP (FLog x y)     = fvOP x `unionUniqSets` fvOP y
+fvOP (CLog x y)     = fvOP x `unionUniqSets` fvOP y
+fvOP (CLogWZ x y z) = fvOP x `unionUniqSets` fvOP y `unionUniqSets` fvOP z
+fvOP (Log x y)      = fvOP x `unionUniqSets` fvOP y
+fvOP (GCD x y)      = fvOP x `unionUniqSets` fvOP y
+fvOP (LCM x y)      = fvOP x `unionUniqSets` fvOP y
+fvOP (Exp x y)      = fvOP x `unionUniqSets` fvOP y
 
 eqFV :: ExtraOp -> ExtraOp -> Bool
 eqFV = (==) `on` fvOP
 
 containsConstants :: ExtraOp -> Bool
-containsConstants (I _) = False
-containsConstants (V _) = False
-containsConstants (C _) = True
-containsConstants (Max x y)  = containsConstants x || containsConstants y
-containsConstants (Min x y)  = containsConstants x || containsConstants y
-containsConstants (Div x y)  = containsConstants x || containsConstants y
-containsConstants (Mod x y)  = containsConstants x || containsConstants y
-containsConstants (FLog x y) = containsConstants x || containsConstants y
-containsConstants (CLog x y) = containsConstants x || containsConstants y
-containsConstants (Log x y)  = containsConstants x || containsConstants y
-containsConstants (GCD x y)  = containsConstants x || containsConstants y
-containsConstants (LCM x y)  = containsConstants x || containsConstants y
-containsConstants (Exp x y)  = containsConstants x || containsConstants y
+containsConstants = \case
+  I _          -> False
+  V _          -> False
+  C _          -> True
+  Max x y      -> or $ containsConstants <$> [x, y]
+  Min x y      -> or $ containsConstants <$> [x, y]
+  Div x y      -> or $ containsConstants <$> [x, y]
+  Mod x y      -> or $ containsConstants <$> [x, y]
+  FLog x y     -> or $ containsConstants <$> [x, y]
+  CLog x y     -> or $ containsConstants <$> [x, y]
+  CLogWZ x y z -> or $ containsConstants <$> [x, y, z]
+  Log x y      -> or $ containsConstants <$> [x, y]
+  GCD x y      -> or $ containsConstants <$> [x, y]
+  LCM x y      -> or $ containsConstants <$> [x, y]
+  Exp x y      -> or $ containsConstants <$> [x, y]
