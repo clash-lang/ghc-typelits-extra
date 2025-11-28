@@ -59,6 +59,8 @@ import GHC.TypeLits.Extra.Solver.Unify
 --     * 'CLog': type-level equivalent of /the ceiling of/ <https://hackage.haskell.org/package/base-4.17.0.0/docs/GHC-Integer-Logarithms.html#v:integerLogBase-35- integerLogBase#>
 --       .i.e. the exact integer equivalent to "@'ceiling' ('logBase' x y)@"
 --
+--     * 'CLogWZ': extension of @CLog@, which returns the additional third argument in case the second argument is zero
+--
 --     * 'Log': type-level equivalent of <https://hackage.haskell.org/package/base-4.17.0.0/docs/GHC-Integer-Logarithms.html#v:integerLogBase-35- integerLogBase#>
 --        where the operation only reduces when "@'floor' ('logBase' b x) ~ 'ceiling' ('logBase' b x)@"
 --
@@ -94,6 +96,7 @@ extraRewrite defs = listToUFM
   , (maxTyCon defs, maxRewrite)
   , (flogTyCon defs, flogRewrite)
   , (clogTyCon defs, clogRewrite)
+  , (clogWZTyCon defs, clogWZRewrite)
   , (logTyCon defs, logRewrite)
   , (gcdTyCon defs, gcdRewrite)
   , (lcmTyCon defs, lcmRewrite)
@@ -122,6 +125,16 @@ extraRewrite defs = listToUFM
       , Just r <- clogBase i j
       = pure $ rewriteTo (clogTyCon defs) args r
     clogRewrite _ _ = pure TcPluginNoRewrite
+
+    clogWZRewrite _ args
+      | [_, LitTy (NumTyLit 0), z] <- args
+      = pure $ TcPluginRewriteTo (reduce (clogWZTyCon defs) args z) []
+    clogWZRewrite _ args
+      | [LitTy (NumTyLit i), LitTy (NumTyLit j), _] <- args
+      , i > 1
+      , Just r <- clogBase i j
+      = pure $ rewriteTo (clogWZTyCon defs) args r
+    clogWZRewrite _ _ = pure TcPluginNoRewrite
 
     logRewrite _ args
       | [LitTy (NumTyLit i), LitTy (NumTyLit j)] <- args
@@ -197,18 +210,34 @@ simplifyExtra defs eqs = tcPluginTrace "simplifyExtra" (ppr eqs) >> simples [] [
     simples :: [Maybe (EvTerm, Ct)] -> [Ct] -> [SolverConstraint] -> TcPluginM 'Solve SimplifyResult
     simples evs news [] = return (Simplified (catMaybes evs) news)
     simples evs news (eq@(NatEquality ct u v norm):eqs') = do
-      ur <- unifyExtra ct u v
-      tcPluginTrace "unifyExtra result" (ppr ur)
       let evM = evMagic (ordTyCons defs) ct (depsFromNormalised norm)
-      case ur of
-        Win -> simples (fmap (,ct) evM:evs) news eqs'
-        Lose | null evs && null eqs' -> return (Impossible eq)
-        _ | Normalised {} <- norm
-          , isWantedCt ct -> do
-          newCt <- createWantedFromNormalised defs eq
+          -- transform:  CLogWZ a b c ~ CLog a b
+          -- to:         1 <= b
+          -- which is equivalent by definition and try to solve that
+          -- along with the rest of the eqs'
+          wz = case (u, v) of
+                 (CLogWZ a b _, CLog a' b') | a == a' && b == b' -> Just b
+                 (CLog a' b', CLogWZ a b _) | a == a' && b == b' -> Just b
+                 _ -> Nothing
+      case wz of
+        Just x -> do
+          let x' = reifyEOP defs x
+              one = reifyEOP defs (I 1)
+          ev <- newWanted (ctLoc ct) $ mkLEqNat (ordTyCons defs) one x'
+          let newCt = mkNonCanonical ev
           simples (fmap (,ct) evM:evs) (newCt:news) eqs'
-        Lose -> simples evs news eqs'
-        Draw -> simples evs news eqs'
+        Nothing -> do
+          ur <- unifyExtra ct u v
+          tcPluginTrace "unifyExtra result" (ppr ur)
+          case ur of
+            Win -> simples (fmap (,ct) evM:evs) news eqs'
+            Lose | null evs && null eqs' -> return (Impossible eq)
+            _ | Normalised {} <- norm
+              , isWantedCt ct -> do
+              newCt <- createWantedFromNormalised defs eq
+              simples (fmap (,ct) evM:evs) (newCt:news) eqs'
+            Lose -> simples evs news eqs'
+            Draw -> simples evs news eqs'
     simples evs news (eq@(NatInequality ct deps u v b norm):eqs') = do
       tcPluginTrace "unifyExtra leq result" (ppr (u,v,b))
       let evM = evMagic (ordTyCons defs) ct (deps <> depsFromNormalised norm)

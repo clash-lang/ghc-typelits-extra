@@ -1,5 +1,6 @@
 # Changelog for the [`ghc-typelits-extra`](http://hackage.haskell.org/package/ghc-typelits-extra) package
 
+* Add `CLogWZ`, an extension of 'CLog', which returns the additional third argument in case the second argument is zero
 * Add rewrite rules for `Min`, `Max`, `FLog`, `CLog`, and `Log`
 
 # 0.5.1 *October 21st 2025*
