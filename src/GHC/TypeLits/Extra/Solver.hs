@@ -211,14 +211,20 @@ simplifyExtra defs eqs = tcPluginTrace "simplifyExtra" (ppr eqs) >> simples [] [
     simples evs news [] = return (Simplified (catMaybes evs) news)
     simples evs news (eq@(NatEquality ct u v norm):eqs') = do
       let evM = evMagic (ordTyCons defs) ct (depsFromNormalised norm)
+          -- transform:  CLogWZ a b c ~ CLog a b
+          -- to:         1 <= b
+          -- which is equivalent by definition and try to solve that
+          -- along with the rest of the eqs'
           wz = case (u, v) of
                  (CLogWZ a b _, CLog a' b') | a == a' && b == b' -> Just b
                  (CLog a' b', CLogWZ a b _) | a == a' && b == b' -> Just b
                  _ -> Nothing
       case wz of
         Just x -> do
-          let eq' = NatInequality ct [] (I 1) x True norm
-          newCt <- createWantedFromNormalised defs eq'
+          let x' = reifyEOP defs x
+              one = reifyEOP defs (I 1)
+          ev <- newWanted (ctLoc ct) $ mkLEqNat (ordTyCons defs) one x'
+          let newCt = mkNonCanonical ev
           simples (fmap (,ct) evM:evs) (newCt:news) eqs'
         Nothing -> do
           ur <- unifyExtra ct u v

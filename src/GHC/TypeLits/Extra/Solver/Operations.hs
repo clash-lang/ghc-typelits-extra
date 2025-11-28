@@ -184,6 +184,8 @@ mergeCLogWZ :: ExtraOp -> ExtraOp -> ExtraOp -> Maybe NormaliseResult
 mergeCLogWZ (I i) _         _ | i < 2  = Nothing
 mergeCLogWZ _     (I 0)     z          = Just (z, Normalised [])
 mergeCLogWZ i     (Exp j k) _ | i == j = Just (k, Normalised [])
+-- CLogWZ a b c = CLog a b for all b > 0 by definition, hence we can
+-- elide one layer of constructor applications in this particular case
 mergeCLogWZ x     y@(I _)   _          = do (res, _) <- mergeCLog x y
                                             pure (res, Normalised [])
 mergeCLogWZ x     y         z          = Just (CLogWZ x y z, Untouched)
