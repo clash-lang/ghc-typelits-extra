@@ -237,7 +237,7 @@ testFail19Errors =
 
 testFail20Errors =
 #if __GLASGOW_HASKELL__ >= 904
-  ["Couldn't match type ‘1’ with ‘0’"]
+  ["Couldn't match type ‘2’ with ‘3’"]
 #elif __GLASGOW_HASKELL__ >= 900
   ["Couldn't match type: FLog 3 10"
   ,"               with: CLog 3 10"]
