@@ -443,18 +443,41 @@ tests = testGroup "ghc-typelits-natnormalise"
     ]
   ]
 
+-- | Match a pattern containing '*' wildcards against a string.
+-- '*' matches any (possibly empty) substring. '\*' matches '*' exactly. '\\'
+-- matches '\'.
+matches :: String -> String -> Bool
+matches [] [] = True
+matches [] _  = False
+matches ('\\':p:ps) (s:ss)
+  | p == s  = matches ps ss
+  | otherwise = False
+matches ['\\'] _ = False
+matches ('*':ps) s =
+  matches ps s || case s of
+    []     -> False
+    (_:ss) -> matches ('*':ps) ss
+matches (p:ps) (s:ss)
+  | p == s  = matches ps ss
+  | otherwise = False
+matches _ _ = False
+
+
 -- | Assert that evaluation of the first argument (to WHNF) will throw
 -- an exception whose string representation contains the given
--- substrings.
+-- substrings. Each substring can contain `*` as a wildcard, see `matches`.
 throws :: a -> [String] -> Assertion
-throws v xs = do
+throws v patterns = do
   result <- try (evaluate v)
   case result of
-    Right _ -> assertFailure "No exception!"
+    Right _ ->
+      assertFailure "No exception!"
     Left (TypeError msg) ->
-      if all (`isInfixOf` (removeProblemChars msg)) $ map removeProblemChars xs
-         then return ()
-         else assertFailure msg
+      let cleanedMsg = removeProblemChars msg
+          ok pat = matches (removeProblemChars (('*':pat) ++ ['*'])) cleanedMsg
+      in if all ok patterns
+            then return ()
+            else assertFailure msg
 
 -- The kind and amount of quotes in GHC error messages changes depending on
 -- whether or not our locale supports unicode.

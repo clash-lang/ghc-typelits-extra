@@ -190,13 +190,13 @@ testFail20Errors =
   ,"               with: CLog 3 10"]
 
 testFail21Errors =
-  ["Expected: Proxy (Min a (a * b)) -> Proxy a"
+  ["Expected: Proxy (Min a (a \\* b)) -> Proxy a"
   ,"  Actual: Proxy a -> Proxy a"
   ]
 
 testFail22Errors =
-  ["Expected: Proxy (Max a (a * b)) -> Proxy (a * b)"
-  ,"  Actual: Proxy (Max a (a * b)) -> Proxy (Max a (a * b))"]
+  ["Expected: Proxy (Max a (a \\* b)) -> Proxy (a \\* b)"
+  ,"  Actual: Proxy (Max a (a \\* b)) -> Proxy (Max a (a \\* b))"]
 
 testFail27Errors =
   ["Expected: Proxy ((n + 2) <=? Max (n + 1) 1) -> Proxy 'True"
