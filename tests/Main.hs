@@ -1,10 +1,12 @@
-{-# LANGUAGE CPP, DataKinds, TypeOperators, TypeApplications, TypeFamilies #-}
+{-# LANGUAGE CPP, DataKinds, TypeOperators, TypeApplications, TypeFamilies, FlexibleContexts,
+             GADTs #-}
 #if __GLASGOW_HASKELL__ >= 805
 {-# LANGUAGE NoStarIsType #-}
 #endif
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.Normalise #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.Extra.Solver #-}
+{-# OPTIONS_GHC -fconstraint-solver-iterations=10 #-}
 
 import Data.List (isInfixOf)
 import Data.Proxy
@@ -15,7 +17,7 @@ import Test.Tasty.HUnit
 
 import ErrorTests
 
-import GHC.TypeLits
+import GHC.TypeLits hiding (SNat)
 import GHC.TypeLits.Extra
 
 test1 :: Proxy (GCD 6 8) -> Proxy 2
@@ -230,9 +232,29 @@ test58a
 test58a = id
 
 test58b
-  :: Proxy (Max (n+2) 1)
+  :: Proxy n
   -> Proxy (Max (n+2) 1)
-test58b = test58a
+  -> Proxy (Max (n+2) 1)
+test58b _ = test58a
+
+data SNat (n :: Nat) where
+  SNat :: KnownNat n => SNat n
+
+instance Show (SNat n) where
+  show _ = "SNat"
+
+test59 ::
+  (1 <= b) =>
+  (1 <= DivRU a b) =>
+  SNat a ->
+  SNat b ->
+  SNat (DivRU a b - 1)
+test59 a b = go a b
+  where
+    go :: (1 <= d) => (1 <= DivRU c d) => SNat c -> SNat d -> SNat (DivRU c d - 1)
+    go SNat SNat = SNat
+
+
 
 main :: IO ()
 main = defaultMain tests
@@ -410,6 +432,9 @@ tests = testGroup "ghc-typelits-natnormalise"
       "Proxy"
     , testCase "forall n p . n + 1 <= Max (n + p + 1) p" $
       show (test57 Proxy Proxy Proxy) @?=
+      "Proxy"
+    , testCase "xD" $
+      show (test59 (SNat @1) (SNat @2)) @?=
       "Proxy"
     ]
   , testGroup "errors"
