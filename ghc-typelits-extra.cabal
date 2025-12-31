@@ -72,8 +72,8 @@ library
                        ghc                       >= 7.10    && <9.12,
                        ghc-prim                  >= 0.5     && <1.0,
                        ghc-tcplugins-extra       >= 0.3.1,
-                       ghc-typelits-knownnat     >= 0.7.2   && <0.8,
-                       ghc-typelits-natnormalise >= 0.7.1   && <0.8,
+                       ghc-typelits-knownnat     >= 0.7.2   && <0.9,
+                       ghc-typelits-natnormalise >= 0.7.1   && <0.10,
                        transformers              >= 0.4.2.0 && <0.7
   if impl(ghc >= 9.0.0)
     build-depends:     ghc-bignum >=1.0 && <1.4
@@ -109,8 +109,8 @@ test-suite test-ghc-typelits-extra
   Other-Modules:       ErrorTests
   build-depends:       base                      >= 4.8 && <5,
                        ghc-typelits-extra,
-                       ghc-typelits-knownnat     >= 0.7.2,
-                       ghc-typelits-natnormalise >= 0.7.1,
+                       ghc-typelits-knownnat,
+                       ghc-typelits-natnormalise,
                        tasty                     >= 0.10,
                        tasty-hunit               >= 0.9
   hs-source-dirs:      tests
