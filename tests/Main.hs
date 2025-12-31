@@ -12,6 +12,7 @@
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.Extra.Solver #-}
 #endif
 
+{-# OPTIONS_GHC -fconstraint-solver-iterations=5 #-}
 
 import Data.List (isInfixOf)
 import Data.Proxy
@@ -274,6 +275,26 @@ test68 = id
 
 test69 :: 1 <= n => Proxy n -> Proxy (CLogWZ 2 n 0) -> Proxy (CLog 2 n)
 test69 _ = id
+
+test70 ::
+  (1 <= b) =>
+  (1 <= DivRU a b) =>
+  KnownNat a =>
+  KnownNat b =>
+  Proxy a ->
+  Proxy b ->
+  Proxy (DivRU a b - 1)
+test70 a b = go a b
+  where
+    go ::
+      (1 <= d) =>
+      (1 <= DivRU c d) =>
+      e ~ DivRU c d - 1 =>
+      KnownNat e =>
+      Proxy c ->
+      Proxy d ->
+      Proxy (DivRU c d - 1)
+    go _ _ = Proxy
 
 main :: IO ()
 main = defaultMain tests
