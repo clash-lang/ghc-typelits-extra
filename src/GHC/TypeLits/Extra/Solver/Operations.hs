@@ -145,7 +145,11 @@ mergeMax _ x (I 0) = (x, Normalised)
 mergeMax defs x y =
   let x' = reifyEOP defs x
       y' = reifyEOP defs y
+#if MIN_VERSION_ghc_typelits_natnormalise(0,8,0)
+      z  = fst $ fst (runWriter (normaliseNat (mkTyConApp typeNatSubTyCon [y',x'])))
+#else
       z  = fst (runWriter (normaliseNat (mkTyConApp typeNatSubTyCon [y',x'])))
+#endif
 #if MIN_VERSION_ghc_typelits_natnormalise(0,7,0)
   in  case runWriterT (isNatural z) of
         Just (True , cs) | Set.null cs -> (y, Normalised)
@@ -161,7 +165,11 @@ mergeMin :: ExtraDefs -> ExtraOp -> ExtraOp -> NormaliseResult
 mergeMin defs x y =
   let x' = reifyEOP defs x
       y' = reifyEOP defs y
+#if MIN_VERSION_ghc_typelits_natnormalise(0,8,0)
+      z  = fst $ fst (runWriter (normaliseNat (mkTyConApp typeNatSubTyCon [y',x'])))
+#else
       z  = fst (runWriter (normaliseNat (mkTyConApp typeNatSubTyCon [y',x'])))
+#endif
 #if MIN_VERSION_ghc_typelits_natnormalise(0,7,0)
   in  case runWriterT (isNatural z) of
         Just (True, cs) | Set.null cs -> (x, Normalised)
