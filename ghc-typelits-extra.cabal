@@ -127,12 +127,12 @@ test-suite test-ghc-typelits-extra
   main-is:             Main.hs
   Other-Modules:       ShouldError
                        ShouldError.Tasty
-  build-depends:       base                      >= 4.8 && <5,
+  build-depends:       base,
                        directory,
                        filepath,
                        ghc-typelits-extra,
-                       ghc-typelits-knownnat     >= 0.8.2,
-                       ghc-typelits-natnormalise >= 0.9.0,
+                       ghc-typelits-knownnat,
+                       ghc-typelits-natnormalise,
                        process,
                        interpolate,
                        tasty                     >= 0.10,
