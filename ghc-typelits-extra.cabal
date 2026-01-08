@@ -47,7 +47,7 @@ copyright:           Copyright © 2015-2016, University of Twente,
                                  2017-2018, QBayLogic B.V.
 category:            Type System
 build-type:          Simple
-extra-source-files:  README.md
+extra-doc-files:     README.md
                      CHANGELOG.md
 tested-with:         GHC == 8.8.4, GHC == 8.10.7, GHC == 9.0.2, GHC == 9.2.8,
                      GHC == 9.4.8, GHC == 9.6.6, GHC == 9.8.4, GHC == 9.10.3,
@@ -73,7 +73,7 @@ library
   build-depends:       base                      >= 4.8      && <5,
                        containers                >= 0.5.7.1  && <0.9,
                        ghc                       >= 8.8      && <9.17,
-                       ghc-prim                  >= 0.5      && <1.0,
+                       ghc-prim                  >= 0.5      && <1,
                        ghc-tcplugin-api          >= 0.18.1.0 && <0.19,
                        ghc-typelits-knownnat     >= 0.7.2    && <0.9,
                        ghc-typelits-natnormalise >= 0.9.3    && <0.10,
