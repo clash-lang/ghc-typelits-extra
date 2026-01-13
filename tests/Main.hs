@@ -12,18 +12,20 @@
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.Extra.Solver #-}
 #endif
 
+-- Even though binders are not used, they're compiled and that's what we're after.
+{-# OPTIONS_GHC -Wno-unused-top-binds #-}
 
-import Data.List (isInfixOf)
+-- Only applies to old GHCs.
+{-# OPTIONS_GHC -Wno-unticked-promoted-constructors #-}
+
 import Data.Proxy
-import Data.Type.Bool
-import Control.Exception
 import Test.Tasty
 import Test.Tasty.HUnit
 
-import ErrorTests
-
 import GHC.TypeLits
 import GHC.TypeLits.Extra
+
+import qualified ShouldError
 
 test1 :: Proxy (GCD 6 8) -> Proxy 2
 test1 = id
@@ -486,52 +488,5 @@ tests = testGroup "ghc-typelits-natnormalise"
       show (test69 (Proxy :: Proxy 3) Proxy) @?=
       "Proxy"
     ]
-  , testGroup "errors"
-    [ testCase "GCD 6 8 /~ 4" $ testFail1 `throws` testFail1Errors
-    , testCase "GCD 6 8 + x /~ x + GCD 9 6" $ testFail2 `throws` testFail2Errors
-    , testCase "CLog 3 10 /~ 2" $ testFail3 `throws` testFail3Errors
-    , testCase "CLog 3 10 + x /~ x + CLog 2 9" $ testFail4 `throws` testFail4Errors
-    , testCase "CLog 0 4 /~ 100" $ testFail5 `throws` testFail5Errors
-    , testCase "CLog 1 4 /~ 100" $ testFail5 `throws` testFail5Errors
-    , testCase "CLog 4 0 /~ 0" $ testFail7 `throws` testFail7Errors
-    , testCase "CLog 1 (1^y) /~ y" $ testFail8 `throws` testFail8Errors
-    , testCase "CLog 0 (0^y) /~ y" $ testFail9 `throws` testFail9Errors
-    , testCase "No instance (KnownNat (CLog 1 4))" $ testFail10 `throws` testFail10Errors
-    , testCase "No instance (KnownNat (CLog 4 4 - CLog 2 4))" $ testFail11 `throws` testFail11Errors
-    , testCase "Div 4 0 /~ 4" $ testFail12 `throws` testFail12Errors
-    , testCase "Mod 4 0 /~ 4" $ testFail13 `throws` testFail13Errors
-    , testCase "FLog 0 4 /~ 100" $ testFail14 `throws` testFail14Errors
-    , testCase "FLog 1 4 /~ 100" $ testFail15 `throws` testFail15Errors
-    , testCase "FLog 4 0 /~ 0" $ testFail16 `throws` testFail16Errors
-    , testCase "GCD 6 8 /~ 4" $ testFail17 `throws` testFail17Errors
-    , testCase "GCD 6 8 + x /~ x + GCD 9 6" $ testFail18 `throws` testFail18Errors
-    , testCase "No instance (KnownNat (Log 3 0))" $ testFail19 `throws` testFail19Errors
-    , testCase "No instance (KnownNat (Log 3 10))" $ testFail20 `throws` testFail20Errors
-    , testCase "Min a (a*b) /~ a" $ testFail21 `throws` testFail21Errors
-    , testCase "Max a (a*b) /~ (a*b)" $ testFail22 `throws` testFail22Errors
-    , testCase "(1 <=? Div 18 6) ~ False" $ testFail23 `throws` testFail23Errors
-    , testCase "(z <=? Max x y) /~ True" $ testFail24 `throws` testFail24Errors
-    , testCase "(x+1 <=? Max x y) /~ True" $ testFail25 `throws` testFail25Errors
-    , testCase "(x <= n) /=> (Max x y) ~ n" $ testFail26 `throws` testFail26Errors
-    , testCase "n + 2 <=? Max (n + 1) 1 /~ True" $ testFail27 `throws` testFail27Errors
-    ]
+  , ShouldError.tests
   ]
-
--- | Assert that evaluation of the first argument (to WHNF) will throw
--- an exception whose string representation contains the given
--- substrings.
-throws :: a -> [String] -> Assertion
-throws v xs = do
-  result <- try (evaluate v)
-  case result of
-    Right _ -> assertFailure "No exception!"
-    Left (TypeError msg) ->
-      if all (`isInfixOf` (removeProblemChars msg)) $ map removeProblemChars xs
-         then return ()
-         else assertFailure msg
-
--- The kind and amount of quotes in GHC error messages changes depending on
--- whether or not our locale supports unicode.
--- Remove the problematic characters to enable comparison of errors.
-removeProblemChars = filter (`notElem` problemChars)
-  where problemChars = "‘’`'"

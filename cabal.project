@@ -1,3 +1,5 @@
+write-ghc-environment-files: always
+
 packages: ./ghc-typelits-extra.cabal
 
 package ghc-typelits-extra

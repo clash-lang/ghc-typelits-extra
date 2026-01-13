@@ -47,7 +47,7 @@ copyright:           Copyright © 2015-2016, University of Twente,
                                  2017-2018, QBayLogic B.V.
 category:            Type System
 build-type:          Simple
-extra-source-files:  README.md
+extra-doc-files:     README.md
                      CHANGELOG.md
 tested-with:         GHC == 8.8.4, GHC == 8.10.7, GHC == 9.0.2, GHC == 9.2.8,
                      GHC == 9.4.8, GHC == 9.6.6, GHC == 9.8.4, GHC == 9.10.3,
@@ -73,7 +73,7 @@ library
   build-depends:       base                      >= 4.8      && <5,
                        containers                >= 0.5.7.1  && <0.9,
                        ghc                       >= 8.8      && <9.17,
-                       ghc-prim                  >= 0.5      && <1.0,
+                       ghc-prim                  >= 0.5      && <1,
                        ghc-tcplugin-api          >= 0.18.1.0 && <0.19,
                        ghc-typelits-knownnat     >= 0.7.2    && <0.9,
                        ghc-typelits-natnormalise >= 0.9.3    && <0.10,
@@ -125,16 +125,23 @@ library
 test-suite test-ghc-typelits-extra
   type:                exitcode-stdio-1.0
   main-is:             Main.hs
-  Other-Modules:       ErrorTests
-  build-depends:       base                      >= 4.8 && <5,
+  Other-Modules:       ShouldError
+                       ShouldError.Tasty
+  build-depends:       base,
+                       directory,
+                       filepath,
                        ghc-typelits-extra,
-                       ghc-typelits-knownnat     >= 0.8.2,
-                       ghc-typelits-natnormalise >= 0.9.0,
+                       ghc-typelits-knownnat,
+                       ghc-typelits-natnormalise,
+                       process,
+                       interpolate,
                        tasty                     >= 0.10,
-                       tasty-hunit               >= 0.9
+                       tasty-hunit               >= 0.9,
+                       temporary
   hs-source-dirs:      tests
+  ghc-options:         -Wall
   default-language:    Haskell2010
   other-extensions:    DataKinds
                        TypeOperators
   if flag(deverror)
-    ghc-options:       -dcore-lint
+    ghc-options:       -Werror -dcore-lint
