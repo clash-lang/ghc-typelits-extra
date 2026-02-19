@@ -119,7 +119,7 @@ reifyEOP defs = \case
   Div x y      -> mkTyConApp (divTyCon defs)  $ reifyEOP defs <$> [x, y]
   Mod x y      -> mkTyConApp (modTyCon defs)  $ reifyEOP defs <$> [x, y]
   CLog x y     -> mkTyConApp (clogTyCon defs) $ reifyEOP defs <$> [x, y]
-  CLogWZ x y z -> mkTyConApp (clogTyCon defs) $ reifyEOP defs <$> [x, y, z]
+  CLogWZ x y z -> mkTyConApp (clogWZTyCon defs) $ reifyEOP defs <$> [x, y, z]
   FLog x y     -> mkTyConApp (flogTyCon defs) $ reifyEOP defs <$> [x, y]
   Log x y      -> mkTyConApp (logTyCon defs)  $ reifyEOP defs <$> [x, y]
   GCD x y      -> mkTyConApp (gcdTyCon defs)  $ reifyEOP defs <$> [x, y]
