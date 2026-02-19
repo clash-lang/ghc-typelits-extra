@@ -38,6 +38,7 @@ tests = testGroup "ShouldError"
     , test25
     , test26
     , test27
+    , test28
     ]
 
 preamble :: String
@@ -548,3 +549,26 @@ expected27 =
 
 test27 :: TestTree
 test27 = testCase "n + 2 <=? Max (n + 1) 1 /~ True" $ assertCompileError source27 expected27
+
+source28 :: String
+source28 = [i|
+{-# LANGUAGE KindSignatures #-}
+|] <> preamble <> [i|
+type Size (n :: Nat) = Max 0 (CLogWZ 2 n 0)
+
+pack :: Proxy n -> Proxy (Size n)
+pack _ = Proxy
+
+repro :: Proxy (Size 1)
+repro = pack (undefined :: Proxy (n :: Nat))
+|]
+
+expected28 :: [String]
+expected28 =
+  ["CLogWZ 2 n"
+  ,"ambiguous"
+  ]
+
+test28 :: TestTree
+test28 = testCase "CLogWZ reify with Max 0 (type synonym) doesn't panic" $
+  assertCompileError source28 expected28
