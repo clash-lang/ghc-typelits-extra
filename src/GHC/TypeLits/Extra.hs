@@ -84,9 +84,6 @@ where
 import Data.Proxy             (Proxy (..))
 import Data.Type.Bool         (If)
 import GHC.Base               (Int#,isTrue#,(==#),(+#))
-#if MIN_VERSION_ghc(9,4,0)
-import GHC.Base               (Constraint)
-#endif
 import GHC.Integer.Logarithms (integerLogBase#)
 #if MIN_VERSION_ghc(8,2,0)
 import GHC.Magic              (noinline)
@@ -185,11 +182,7 @@ instance (KnownNat x, KnownNat y, 2 <= x, 1 <= y) => KnownNat2 $(nameToSymbol ''
 type family CLog (base :: Nat) (value :: Nat) :: Nat where
   CLog 2 1 = 0 -- Additional equations are provided by the custom solver
 
-#if MIN_VERSION_ghc(9,4,0)
-instance (KnownNat x, KnownNat y, (2 <= x) ~ (() :: Constraint), 1 <= y) => KnownNat2 $(nameToSymbol ''CLog) x y where
-#else
 instance (KnownNat x, KnownNat y, 2 <= x, 1 <= y) => KnownNat2 $(nameToSymbol ''CLog) x y where
-#endif
   natSing2 = let x  = natVal (Proxy @x)
                  y  = natVal (Proxy @y)
                  z1 = integerLogBase# x y
@@ -204,11 +197,7 @@ type family CLogWZ (base :: Nat) (value :: Nat) (ifzero :: Nat) :: Nat where
   CLogWZ _ 0 z = z
   CLogWZ b v _ = CLog b v
 
-#if MIN_VERSION_ghc(9,4,0)
-instance (KnownNat x, KnownNat y, KnownNat z, (2 <= x) ~ (() :: Constraint)) => KnownNat3 $(nameToSymbol ''CLogWZ) x y z where
-#else
 instance (KnownNat x, KnownNat y, KnownNat z, 2 <= x) => KnownNat3 $(nameToSymbol ''CLogWZ) x y z where
-#endif
   natSing3 = let x  = natVal (Proxy @x)
                  y  = natVal (Proxy @y)
                  z  = natVal (Proxy @z)
