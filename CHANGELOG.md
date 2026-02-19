@@ -1,5 +1,8 @@
 # Changelog for the [`ghc-typelits-extra`](http://hackage.haskell.org/package/ghc-typelits-extra) package
 
+# Unreleased
+* Fix wrong reification from `CLogWZ` to `CLog` causing GHC panic. [#71](https://github.com/clash-lang/ghc-typelits-extra/issues/71)
+
 # 0.5.2 *December 3rd 2025*
 * Add `CLogWZ`, an extension of 'CLog', which returns the additional third argument in case the second argument is zero
 * Add rewrite rules for `Min`, `Max`, `FLog`, `CLog`, and `Log`
