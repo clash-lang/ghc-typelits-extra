@@ -244,6 +244,12 @@ test58b
   -> Proxy (Max (n+2) 1)
 test58b _ = test58a
 
+test58c
+  :: 1 <= n
+  => Proxy (Max 1 n)
+  -> Proxy n
+test58c = id
+
 test59 :: Proxy (CLogWZ 3 10 9) -> Proxy 3
 test59 = id
 

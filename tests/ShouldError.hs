@@ -421,13 +421,7 @@ test _ _ = id
 
 expected22 :: [String]
 expected22 =
-#if __GLASGOW_HASKELL__ >= 900
-  ["Proxy (Max a (a * b)) -> Proxy (a * b)"
-  ,"Proxy (Max a (a * b)) -> Proxy (Max a (a * b))"]
-#else
-  ["Proxy (Max a (a * b)) -> Proxy (a * b)"
-  ,"Proxy (a * b) -> Proxy (a * b)"]
-#endif
+  ["a <= a * b"]
 
 test22 :: TestTree
 test22 = testCase "Max a (a*b) /~ (a*b)" $ assertCompileError source22 expected22

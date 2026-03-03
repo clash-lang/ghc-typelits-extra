@@ -219,11 +219,20 @@ simplifyExtra defs eqs = tcPluginTrace "simplifyExtra" (ppr eqs) >> simples [] [
                  (CLogWZ a b _, CLog a' b') | a == a' && b == b' -> Just b
                  (CLog a' b', CLogWZ a b _) | a == a' && b == b' -> Just b
                  _ -> Nothing
+          -- transform:  Max a b ~ b  /  Max a b ~ a
+          -- to:         a <= b      /  b <= a
+          maxEq = maxEqLeq u v
       case wz of
         Just x -> do
           let x' = reifyEOP defs x
               one = reifyEOP defs (I 1)
           ev <- newWanted (ctLoc ct) $ mkLEqNat (ordTyCons defs) one x'
+          let newCt = mkNonCanonical ev
+          simples (fmap (,ct) evM:evs) (newCt:news) eqs'
+        Nothing | Just (lo, hi) <- maxEq -> do
+          let lo' = reifyEOP defs lo
+              hi' = reifyEOP defs hi
+          ev <- newWanted (ctLoc ct) $ mkLEqNat (ordTyCons defs) lo' hi'
           let newCt = mkNonCanonical ev
           simples (fmap (,ct) evM:evs) (newCt:news) eqs'
         Nothing -> do
@@ -277,6 +286,16 @@ simplifyExtra defs eqs = tcPluginTrace "simplifyExtra" (ppr eqs) >> simples [] [
           | c == b && not (isWantedCt ct)
             = Just (ctEvCoercion (ctEvidence ct), a)
         go (_:rest) = go rest
+
+    maxEqLeq :: ExtraOp -> ExtraOp -> Maybe (ExtraOp, ExtraOp)
+    maxEqLeq x y = case (x, y) of
+      (Max a b, y')
+        | y' == a -> Just (b, a)
+        | y' == b -> Just (a, b)
+      (x', Max a b)
+        | x' == a -> Just (b, a)
+        | x' == b -> Just (a, b)
+      _ -> Nothing
 
 
 -- Extract the Nat equality constraints
