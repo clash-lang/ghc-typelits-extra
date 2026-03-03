@@ -3,6 +3,7 @@
 # Unreleased
 * Do not require equality to unit constraint for wanted InEqs for `CLog` and `CLogWZ`.
 * Fix wrong reification from `CLogWZ` to `CLog` causing GHC panic. [#71](https://github.com/clash-lang/ghc-typelits-extra/issues/71)
+* Do not emit new wanteds for given `CLogWZ ~ CLog` equalities. [#73](https://github.com/clash-lang/ghc-typelits-extra/issues/73)
 
 # 0.5.2 *December 3rd 2025*
 * Add `CLogWZ`, an extension of 'CLog', which returns the additional third argument in case the second argument is zero

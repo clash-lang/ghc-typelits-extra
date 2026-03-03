@@ -220,13 +220,13 @@ simplifyExtra defs eqs = tcPluginTrace "simplifyExtra" (ppr eqs) >> simples [] [
                  (CLog a' b', CLogWZ a b _) | a == a' && b == b' -> Just b
                  _ -> Nothing
       case wz of
-        Just x -> do
+        Just x | isWantedCt ct -> do
           let x' = reifyEOP defs x
               one = reifyEOP defs (I 1)
           ev <- newWanted (ctLoc ct) $ mkLEqNat (ordTyCons defs) one x'
           let newCt = mkNonCanonical ev
           simples (fmap (,ct) evM:evs) (newCt:news) eqs'
-        Nothing -> do
+        _ -> do
           ur <- unifyExtra ct u v
           tcPluginTrace "unifyExtra result" (ppr ur)
           case ur of

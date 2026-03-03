@@ -19,6 +19,7 @@
 {-# OPTIONS_GHC -Wno-unticked-promoted-constructors #-}
 
 import Data.Proxy
+import Data.Type.Equality
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -277,6 +278,12 @@ test68 = id
 test69 :: 1 <= n => Proxy n -> Proxy (CLogWZ 2 n 0) -> Proxy (CLog 2 n)
 test69 _ = id
 
+-- Regression test for: https://github.com/clash-lang/ghc-typelits-extra/issues/73
+test70 :: (CLog 2 n ~ CLogWZ 2 n 0) => Proxy n -> Proxy n
+test70 _ =
+  case (Refl :: Max (n + 1) 1 :~: (1 + n)) of
+    Refl -> Proxy
+
 main :: IO ()
 main = defaultMain tests
 
@@ -486,6 +493,9 @@ tests = testGroup "ghc-typelits-natnormalise"
       "Proxy"
     , testCase "1 <= n => CLogWZ 2 n 0 ~ CLog 2 n" $
       show (test69 (Proxy :: Proxy 3) Proxy) @?=
+      "Proxy"
+    , testCase "CLogWZ ~ CLog given does not loop" $
+      show (test70 (Proxy :: Proxy 1)) @?=
       "Proxy"
     ]
   , ShouldError.tests
