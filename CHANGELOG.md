@@ -1,6 +1,6 @@
 # Changelog for the [`ghc-typelits-extra`](http://hackage.haskell.org/package/ghc-typelits-extra) package
 
-# Unreleased
+# 0.5.3 *March 19th 2026*
 * Do not require equality to unit constraint for wanted InEqs for `CLog` and `CLogWZ`.
 * Fix wrong reification from `CLogWZ` to `CLog` causing GHC panic. [#71](https://github.com/clash-lang/ghc-typelits-extra/issues/71)
 * Do not emit new wanteds for given `CLogWZ ~ CLog` equalities. [#73](https://github.com/clash-lang/ghc-typelits-extra/issues/73)
