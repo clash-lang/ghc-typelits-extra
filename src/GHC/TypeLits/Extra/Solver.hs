@@ -84,10 +84,11 @@ plugin
 
 normalisePlugin :: TcPlugin
 normalisePlugin =
-  TcPlugin { tcPluginInit    = lookupExtraDefs
-           , tcPluginSolve   = decideEqualSOP
-           , tcPluginRewrite = extraRewrite
-           , tcPluginStop    = const (return ())
+  TcPlugin { tcPluginInit     = lookupExtraDefs
+           , tcPluginSolve    = decideEqualSOP
+           , tcPluginRewrite  = extraRewrite
+           , tcPluginPostTc   = const (return ())
+           , tcPluginShutdown = const (return ())
            }
 
 extraRewrite :: ExtraDefs -> UniqFM TyCon TcPluginRewriter
