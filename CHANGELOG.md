@@ -1,6 +1,6 @@
 # Changelog for the [`ghc-typelits-extra`](http://hackage.haskell.org/package/ghc-typelits-extra) package
 
-# Unreleased
+# 0.5.4 *May 13th 2026*
 * Bump ghc-tcplugin-api to prepare for inclusion into stackage
 
 # 0.5.3 *March 19th 2026*
