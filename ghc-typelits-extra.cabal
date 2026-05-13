@@ -1,6 +1,6 @@
 cabal-version:       3.0
 name:                ghc-typelits-extra
-version:             0.5.3
+version:             0.5.4
 synopsis:            Additional type-level operations on GHC.TypeLits.Nat
 description:
   Additional type-level operations on @GHC.TypeLits.Nat@:
