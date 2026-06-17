@@ -2,7 +2,6 @@
 
 [![Build Status](https://github.com/clash-lang/ghc-typelits-extra/actions/workflows/haskell-ci.yml/badge.svg?branch=master)](https://github.com/clash-lang/ghc-typelits-extra/actions)
 [![Hackage](https://img.shields.io/hackage/v/ghc-typelits-extra.svg)](https://hackage.haskell.org/package/ghc-typelits-extra)
-[![Hackage Dependencies](https://img.shields.io/hackage-deps/v/ghc-typelits-extra.svg?style=flat)](http://packdeps.haskellers.com/feed?needle=exact%3Aghc-typelits-extra)
 
 Extra type-level operations on GHC.TypeLits.Nat and a custom solver implemented
 as a GHC type-checker plugin:
